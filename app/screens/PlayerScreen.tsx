@@ -113,6 +113,15 @@ function Waveform({
   return <canvas ref={canvasRef} className="w-full h-full" />;
 }
 
+function slugify(s: string) {
+  return (s || "cancion")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)+/g, "");
+}
+
 export default function PlayerScreen({
   audioUrl,
   title,
@@ -132,6 +141,16 @@ export default function PlayerScreen({
   const [analyserReady, setAnalyserReady] = useState(false);
 
   const ready = !!audioUrl;
+
+  const publicBase =
+    process.env.NEXT_PUBLIC_PUBLIC_URL ||
+    (typeof window !== "undefined" ? window.location.origin : "");
+
+  const downloadUrl = ready
+    ? `${publicBase}/api/download?src=${encodeURIComponent(
+        audioUrl!
+      )}&filename=${encodeURIComponent(`${slugify(title)}.mp3`)}`
+    : "";
 
   // Sincroniza estado con eventos del <audio>
   useEffect(() => {
@@ -240,9 +259,7 @@ export default function PlayerScreen({
   }, []);
 
   return (
-    <div
-      className="w-full min-h-screen relative flex flex-col items-center justify-center text-white overflow-hidden"
-    >
+    <div className="w-full min-h-screen relative flex flex-col items-center justify-center text-white overflow-hidden">
       {/* Video de fondo (nuevo) */}
       <video
         className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none"
@@ -311,7 +328,7 @@ export default function PlayerScreen({
               transform: "translateX(-50%)",
             }}
           >
-            <QRCodeCanvas value={audioUrl || ""} size={80} marginSize={1} />
+            <QRCodeCanvas value={downloadUrl} size={80} marginSize={1} />
             <div className="text-[11px] opacity-85">
               Escanea el código y llévate un recuerdo de tu experiencia
             </div>
