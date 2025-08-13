@@ -1,103 +1,156 @@
-import Image from "next/image";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+"use client";
 
-export default function Home() {
+import { useEffect, useRef, useState } from "react";
+import StartScreen from "./screens/StartScreen";
+import GenreSelectionScreen from "./screens/GenreSelectionScreen";
+import LoadingScreen from "./screens/LoadingScreen";
+import PlayerScreen from "./screens/PlayerScreen";
+
+type Step = "start" | "genre" | "loading" | "player";
+
+/*
+const audioUrl = "https://apiboxfiles.erweima.ai/ZWRkOTQ3YjItMGFhZi00NDhmLTg2NjgtMDAzYTg3Y2Q4Mzlj.mp3";
+const title = "Bajo la Luna";
+
+  const [step, setStep] = useState<Step>("player");
+  const [finalAudioUrl] = useState<string>(
+    "https://apiboxfiles.erweima.ai/ZWRkOTQ3YjItMGFhZi00NDhmLTg2NjgtMDAzYTg3Y2Q4Mzlj.mp3"
+  );
+  const [title] = useState<string>("Bajo la Luna");
+*/
+export default function Page() {
+  const [step, setStep] = useState<Step>("start");
+
+  // Datos del flujo
+  const [themePrompt, setThemePrompt] = useState<string>(""); // solo lo piden en desktop/tablet
+  const [style, setStyle] = useState<string>("");
+
+  // Generación
+  const [taskId, setTaskId] = useState<string | null>(null);
+  const [status, setStatus] = useState<string>("—");
+  const [streamUrl, setStreamUrl] = useState<string | null>(null);
+  const [finalAudioUrl, setFinalAudioUrl] = useState<string>(
+    "https://apiboxfiles.erweima.ai/ZWRkOTQ3YjItMGFhZi00NDhmLTg2NjgtMDAzYTg3Y2Q4Mzlj.mp3"
+  );
+  const [title, setTitle] = useState<string>("Bajo la Luna");
+  const [error, setError] = useState<string | null>(null);
+  const pollTimer = useRef<NodeJS.Timeout | null>(null);
+
+  const handleStartNext = (promptFromDesktop?: string) => {
+    if (promptFromDesktop && promptFromDesktop.trim()) {
+      setThemePrompt(promptFromDesktop.trim());
+    }
+    setStep("genre");
+  };
+
+  const startPolling = (id: string) => {
+    if (pollTimer.current) clearInterval(pollTimer.current);
+    setStatus("PENDING");
+    setStreamUrl(null);
+    setFinalAudioUrl(null);
+
+    pollTimer.current = setInterval(async () => {
+      try {
+        const r = await fetch(`/api/get-task?taskId=${encodeURIComponent(id)}`);
+        const data = await r.json();
+
+        if (!r.ok) throw new Error(data?.error || "Error en polling");
+
+        setStatus(data.status || "—");
+
+        // Si trae streamAudioUrl antes de SUCCESS, lo usamos en la pantalla de "Cargando"
+        const s = data?.track?.streamAudioUrl || null;
+        if (s && !finalAudioUrl) setStreamUrl(s);
+
+        // Cuando finaliza: usamos audioUrl (final)
+        if (data.status === "SUCCESS" && data.track?.audioUrl) {
+          setFinalAudioUrl(data.track.audioUrl);
+          clearInterval(pollTimer.current!);
+          setStep("player");
+        }
+      } catch {
+        // ignorar fallos transitorios
+      }
+    }, 2000);
+  };
+
+  const handleSubmitGeneration = async () => {
+    setError(null);
+    setTitle("Mi Canción");
+    setFinalAudioUrl(null);
+    setStreamUrl(null);
+
+    try {
+      setStep("loading");
+      const resp = await fetch("/api/generate-song", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        // nuevo flujo: siempre autoLyrics; solo mandamos style y (si existe) themePrompt
+        body: JSON.stringify({
+          mode: "autoLyrics",
+          style,
+          // título lo propone la API de lyrics; si no, backend pone fallback.
+          title: "",
+          themePrompt: themePrompt || undefined, // puede ir vacío en mobile; el backend genera fallback
+        }),
+      });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data?.error || "Falló la generación");
+
+      // guardamos taskId y empezamos a hacer polling
+      setTaskId(data.taskId);
+      startPolling(data.taskId);
+    } catch (e: any) {
+      setError(e?.message ?? "Error");
+      setStep("genre");
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (pollTimer.current) clearInterval(pollTimer.current);
+    };
+  }, []);
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <>
+      {step === "start" && <StartScreen onNext={handleStartNext} />}
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+      {step === "genre" && (
+        <GenreSelectionScreen
+          style={style}
+          setStyle={setStyle}
+          error={error}
+          onBack={() => setStep("start")}
+          onNext={handleSubmitGeneration}
+        />
+      )}
+
+      {step === "loading" && (
+        <LoadingScreen
+          status={status}
+          streamUrl={streamUrl}
+          onCancel={() => setStep("genre")}
+        />
+      )}
+
+      {step === "player" && (
+        <PlayerScreen
+          audioUrl={finalAudioUrl}
+          title={title}
+          onRestart={() => {
+            setThemePrompt("");
+            setStyle("Reggaeton");
+            setTaskId(null);
+            setStatus("—");
+            setStreamUrl(null);
+            setFinalAudioUrl(null);
+            setError(null);
+            setStep("start");
+          }}
+        />
+      )}
+    </>
   );
 }
