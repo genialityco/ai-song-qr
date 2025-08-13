@@ -138,7 +138,7 @@ export default function PlayerScreen({
   const audioCtxRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
-  const [analyserReady, setAnalyserReady] = useState(false);
+  const [, setAnalyserReady] = useState(false);
 
   const ready = !!audioUrl;
 

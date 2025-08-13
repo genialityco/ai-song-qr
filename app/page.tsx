@@ -27,12 +27,10 @@ export default function Page() {
   const [style, setStyle] = useState<string>("");
 
   // Generación
-  const [taskId, setTaskId] = useState<string | null>(null);
+  const [, setTaskId] = useState<string | null>(null);
   const [status, setStatus] = useState<string>("—");
+  const [finalAudioUrl, setFinalAudioUrl] = useState<string | null>(null);
   const [streamUrl, setStreamUrl] = useState<string | null>(null);
-  const [finalAudioUrl, setFinalAudioUrl] = useState<string>(
-    "https://apiboxfiles.erweima.ai/ZWRkOTQ3YjItMGFhZi00NDhmLTg2NjgtMDAzYTg3Y2Q4Mzlj.mp3"
-  );
   const [title, setTitle] = useState<string>("Bajo la Luna");
   const [error, setError] = useState<string | null>(null);
   const pollTimer = useRef<NodeJS.Timeout | null>(null);

@@ -174,7 +174,6 @@ export default function LoadingScreen({
       el.removeEventListener("ended", onEnded);
       el.removeEventListener("error", onError);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasStream]);
 
   const ensureAudioGraph = async () => {
