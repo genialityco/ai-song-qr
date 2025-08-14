@@ -1,8 +1,6 @@
-import { initializeApp } from "firebase/app";
+// firebaseConfig.ts  ✅ SEGURO para server y client (sin APIs de navegador en top-level)
+import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
-import { getStorage } from "firebase/storage";
-import { getAuth, setPersistence, browserLocalPersistence } from "firebase/auth";
-import { getMessaging } from "firebase/messaging";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY!,
@@ -13,11 +11,46 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID!,
 };
 
+export const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
-const app = initializeApp(firebaseConfig);
-
+// Firestore es seguro crearlo aquí
 export const db = getFirestore(app);
-export const auth = getAuth(app);
-setPersistence(auth, browserLocalPersistence);
-export const messaging = getMessaging(app);
-export const storage = getStorage(app);
+
+// ===== Helpers opcionales SOLO para navegador =====
+const isBrowser = () =>
+  typeof window !== "undefined" && typeof navigator !== "undefined";
+
+/** Auth solo en navegador (con persistencia local) */
+export async function getAuthBrowser() {
+  if (!isBrowser()) return null;
+  const { getAuth, setPersistence, browserLocalPersistence } = await import(
+    "firebase/auth"
+  );
+  const auth = getAuth(app);
+  try {
+    await setPersistence(auth, browserLocalPersistence);
+  } catch (e) {
+    // Ignora errores de persistencia (por ejemplo, si no hay storage disponible)
+    console.warn("Auth persistence error:", e);
+  }
+  return auth;
+}
+
+/** Messaging solo si es soportado por el navegador */
+export async function getMessagingBrowser() {
+  if (!isBrowser()) return null;
+  try {
+    const { isSupported, getMessaging } = await import("firebase/messaging");
+    if (await isSupported()) return getMessaging(app);
+  } catch (e) {
+    console.warn("Messaging not available:", e);
+  }
+  return null;
+}
+
+/** Storage (browser-only) */
+export async function getStorageBrowser() {
+  if (!isBrowser()) return null;
+  const { getStorage } = await import("firebase/storage");
+  return getStorage(app);
+}
