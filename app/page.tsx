@@ -7,7 +7,8 @@ import GenreSelectionScreen from "./screens/GenreSelectionScreen";
 import LoadingScreen from "./screens/LoadingScreen";
 import PlayerScreen from "./screens/PlayerScreen";
 
-type Step = "start" | "genre" | "loading" | "player";
+
+type Step = "start" | "genre" | "loading" | "player" | "survey";
 
 /*
 const audioUrl = "https://apiboxfiles.erweima.ai/ZWRkOTQ3YjItMGFhZi00NDhmLTg2NjgtMDAzYTg3Y2Q4Mzlj.mp3";

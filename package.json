@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "box-node-sdk": "^3.8.2",
+    "firebase": "^12.1.0",
     "next": "15.4.6",
     "qrcode.react": "^4.2.0",
     "react": "19.1.0",

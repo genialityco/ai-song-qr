@@ -142,15 +142,21 @@ export default function PlayerScreen({
 
   const ready = !!audioUrl;
 
-  const publicBase =
-    process.env.NEXT_PUBLIC_PUBLIC_URL ||
-    (typeof window !== "undefined" ? window.location.origin : "");
+  console.log("Formulario renderizado con audioUrl:", audioUrl, "y title:", title);
 
-  const downloadUrl = ready
-    ? `${publicBase}/api/download?src=${encodeURIComponent(
-        audioUrl!
-      )}&filename=${encodeURIComponent(`${slugify(title)}.mp3`)}`
+  const urlSurvey = ready
+    ? `${window.location.origin}/survey?src=${encodeURIComponent(
+      audioUrl!
+    )}&filename=${encodeURIComponent(`${slugify(title)}.mp3`)}`
     : "";
+
+
+  console.log("URL de encuesta:", urlSurvey);
+  // const downloadUrl = ready
+  //   ? `${publicBase}/api/download?src=${encodeURIComponent(
+  //       audioUrl!
+  //     )}&filename=${encodeURIComponent(`${slugify(title)}.mp3`)}`
+  //   : "";
 
   // Sincroniza estado con eventos del <audio>
   useEffect(() => {
@@ -183,7 +189,7 @@ export default function PlayerScreen({
         if (audioUrl) {
           audioRef.current.load(); // clave para preparar buffer
         }
-      } catch {}
+      } catch { }
     }
 
     // Desconectar grafo anterior si existía
@@ -191,7 +197,7 @@ export default function PlayerScreen({
       sourceRef.current?.disconnect();
       analyserRef.current?.disconnect();
       // No cerramos el AudioContext aquí para permitir su reutilización si ya fue creado.
-    } catch {}
+    } catch { }
     sourceRef.current = null;
     analyserRef.current = null;
     setAnalyserReady(false);
@@ -208,7 +214,7 @@ export default function PlayerScreen({
     }
     // iOS/Safari: resume si está suspendido
     if (audioCtxRef.current.state === "suspended") {
-      await audioCtxRef.current.resume().catch(() => {});
+      await audioCtxRef.current.resume().catch(() => { });
     }
 
     if (!sourceRef.current || !analyserRef.current) {
@@ -251,7 +257,7 @@ export default function PlayerScreen({
         sourceRef.current?.disconnect();
         analyserRef.current?.disconnect();
         audioCtxRef.current?.close();
-      } catch {}
+      } catch { }
       sourceRef.current = null;
       analyserRef.current = null;
       audioCtxRef.current = null;
@@ -260,7 +266,6 @@ export default function PlayerScreen({
 
   return (
     <div className="w-full min-h-screen relative flex flex-col items-center justify-center text-white overflow-hidden">
-      {/* Video de fondo (nuevo) */}
       <video
         className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none"
         src="/assets/fondo_animado.mp4"
@@ -269,14 +274,10 @@ export default function PlayerScreen({
         muted
         playsInline
         preload="auto"
-        // Poster opcional como fallback:
         poster="/assets/FONDO_PANTALLA.png"
       />
-
-      {/* (Opcional) capa sutil para contraste del texto */}
       <div className="absolute inset-0 bg-black/20 z-0 pointer-events-none" />
 
-      {/* Lenovo lateral (solo desktop/tablet) */}
       <img
         src="/assets/TABLET/SVG/LOGOS_LENOVO.svg"
         alt="Lenovo"
@@ -328,7 +329,7 @@ export default function PlayerScreen({
               transform: "translateX(-50%)",
             }}
           >
-            <QRCodeCanvas value={downloadUrl} size={80} marginSize={1} />
+            <QRCodeCanvas value={urlSurvey} size={80} marginSize={1} />
             <div className="text-[11px] opacity-85">
               Escanea el código y llévate un recuerdo de tu experiencia
             </div>
