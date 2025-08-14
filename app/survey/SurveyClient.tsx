@@ -114,9 +114,9 @@ export default function SurveyClient() {
   const fields = [
     { name: "nombre", type: "text", placeholder: "Nombre *" },
     { name: "telefono", type: "tel", placeholder: "Teléfono (7-10 dígitos) *" },
-    { name: "correo", type: "email", placeholder: "Correo *" },
-    { name: "empresa", type: "text", placeholder: "Empresa (opcional)" },
-    { name: "cargo", type: "text", placeholder: "Cargo (opcional)" },
+    { name: "correo", type: "email", placeholder: "Correo " },
+    { name: "empresa", type: "text", placeholder: "Empresa *" },
+    { name: "cargo", type: "text", placeholder: "Cargo *" },
   ] as const;
 
   return (
@@ -169,9 +169,6 @@ export default function SurveyClient() {
                 {isSubmitting ? "Enviando..." : "Enviar"}
               </button>
             </form>
-            <p className="text-xs text-white/70 mt-4 text-center">
-              * Campos obligatorios
-            </p>
           </>
         ) : (
           <div className="text-center space-y-4">
