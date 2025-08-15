@@ -127,6 +127,7 @@ export default function StartScreen({
                   onChange={(e) => setDesktopPrompt(e.target.value)}
                   placeholder="Escribe sobre qué quieres tu canción"
                   className="w-full bg-transparent outline-none text-[18px] placeholder:text-[#808080]"
+                  maxLength={90}
                   style={{ fontFamily: "'Segoe UI', sans-serif" }}
                 />
                 <div className="mt-3 h-[1px] w-full bg-white/50" />

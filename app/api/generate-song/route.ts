@@ -9,7 +9,15 @@ const DEFAULT_MODEL =
   (process.env.MUSIC_DEFAULT_MODEL as "V3_5" | "V4" | "V4_5" | "V4_5PLUS") ||
   "V4";
 
-// ----- SCHEMA de entrada
+// ====== CONTROLES DE DURACIÓN / RENDIMIENTO ======
+const LYRICS_MAX_LINES = 12;   // aprox 60–90s
+const LYRICS_MAX_CHARS = 900;  // tope duro de seguridad
+const DEFAULT_SHORT_TITLE = "Mi Canción";
+
+const POLL_MAX_ATTEMPTS = 15;  // menos intentos = respuesta más ágil
+const POLL_INTERVAL_MS = 2000; // 2s entre intentos
+
+// ====== SCHEMA de entrada ======
 const Body = z.object({
   mode: z.enum(["autoLyrics", "lyrics"]),
   model: z
@@ -18,17 +26,18 @@ const Body = z.object({
     .default(DEFAULT_MODEL),
 
   // autoLyrics
-  themePrompt: z.string().optional(), // idea/tema para generar letra (≤ 200 palabras según doc)
+  themePrompt: z.string().max(4000).optional(), // aceptamos largo, recortamos antes de llamar a la API
+
   // lyrics
   lyrics: z.string().optional(), // letra exacta
 
   // comunes a ambos modos
   style: z.string(), // género
-  title: z.string(), // título (si viene vacío y la API sugiere uno, lo tomamos)
+  title: z.string(), // título
   negativeTags: z.string().optional().default(""),
 });
 
-// ----- Helpers
+// ====== Helpers HTTP ======
 async function apiGET(path: string) {
   const r = await fetch(`${API_BASE}${path}`, {
     headers: { Authorization: `Bearer ${API_KEY}` },
@@ -55,8 +64,8 @@ async function apiPOST(path: string, body: any) {
 async function poll<T>(
   fn: () => Promise<T>,
   isDone: (d: T) => boolean,
-  maxAttempts = 20,
-  intervalMs = 3000
+  maxAttempts = POLL_MAX_ATTEMPTS,
+  intervalMs = POLL_INTERVAL_MS
 ): Promise<T> {
   let last: T | null = null;
   for (let i = 0; i < maxAttempts; i++) {
@@ -69,22 +78,68 @@ async function poll<T>(
   throw new Error("Timeout esperando resultado");
 }
 
+// ====== Utilidades de recorte de letra ======
+function clipLines(text: string, maxLines: number): string {
+  const lines = text.replace(/\r\n/g, "\n").split("\n");
+  const out = lines.slice(0, maxLines).join("\n").trim();
+  return out;
+}
+function hardTrim(text: string, maxChars: number): string {
+  return text.length <= maxChars ? text : text.slice(0, maxChars).trim();
+}
+/** Aplica ambos recortes y limpia espacios extra */
+function makeShortLyrics(text: string): string {
+  const step1 = clipLines(text, LYRICS_MAX_LINES);
+  const step2 = hardTrim(step1, LYRICS_MAX_CHARS);
+  return step2.replace(/\n{3,}/g, "\n\n").trim();
+}
+
+// ====== Utilidades para prompt ≤ 200 caracteres ======
+function compactTo(s: string, max: number): string {
+  const oneLine = s.replace(/\s+/g, " ").trim();
+  return oneLine.length <= max ? oneLine : oneLine.slice(0, max).trim();
+}
+function to200Chars(s: string): string {
+  return compactTo(s, 200);
+}
+
+/** Construye un prompt que fuerce letra breve y siempre ≤ 200 chars */
+function buildShortLyricsPrompt(themePrompt: string, style: string): string {
+  // Todo en una sola línea para ahorrar caracteres
+  const fixed = `Letra breve en español, máx 12 líneas. Estructura: [Verse] 2-4, [Chorus] 2-4. Estilo: ${style}. Tema: `;
+  const room = Math.max(0, 200 - fixed.length);
+  const compactTheme = compactTo(themePrompt, room);
+  return to200Chars(fixed + compactTheme);
+}
+
 /** 1) Generar letra con /lyrics y obtener texto final (y posible título sugerido) */
 async function generateLyricsAndGetText(
-  themePrompt: string
+  themePrompt: string,
+  style: string
 ): Promise<{ text: string; title?: string }> {
-  // 1) Crear tarea de letras
+  // Prompt **siempre ≤ 200 chars**
+  const shortPrompt = buildShortLyricsPrompt(themePrompt, style);
+
+  // Crear tarea de letras
   const start = await apiPOST("/lyrics", {
-    prompt: themePrompt,
-    // usamos polling igualmente, el callback puede ser dummy
+    prompt: shortPrompt,
     callBackUrl: "https://example.com/callback",
   });
 
-  const lyricsTaskId = start?.data?.taskId || start?.taskId || start?.id;
-  if (!lyricsTaskId)
-    throw new Error("Lyrics: no se recibió taskId en POST /lyrics");
+  // Buscar taskId en varias variantes comunes
+  const lyricsTaskId =
+    start?.data?.taskId ||
+    start?.data?.id ||
+    start?.taskId ||
+    start?.id ||
+    start?.data?.task_id;
 
-  // 2) Poll hasta estado terminal
+  if (!lyricsTaskId) {
+    console.error("[POST /lyrics] respuesta sin taskId:", JSON.stringify(start));
+    throw new Error("Lyrics: no se recibió taskId en POST /lyrics (ver logs).");
+  }
+
+  // Polling hasta estado terminal
   const done = await poll(
     () =>
       apiGET(`/lyrics/record-info?taskId=${encodeURIComponent(lyricsTaskId)}`),
@@ -96,9 +151,7 @@ async function generateLyricsAndGetText(
         st === "CALLBACK_EXCEPTION" ||
         st === "SENSITIVE_WORD_ERROR"
       );
-    },
-    30,
-    3000
+    }
   );
 
   const status = done?.data?.status;
@@ -108,9 +161,7 @@ async function generateLyricsAndGetText(
     throw new Error(`Lyrics: tarea no finalizó en SUCCESS. ${errMsg}`);
   }
 
-  // 3) Extraer texto/título (soporta dos variantes de la API):
-  //    a) data.response.lyricsData[]
-  //    b) data.response.data[]
+  // Extraer texto/título (dos variantes de respuesta posibles)
   const resp = done?.data?.response;
   const list =
     (Array.isArray(resp?.lyricsData) && resp.lyricsData) ||
@@ -120,7 +171,6 @@ async function generateLyricsAndGetText(
   const pick = (arr: any[]) => {
     if (!arr.length)
       return { text: "", title: undefined as string | undefined };
-    // preferimos items con status complete y texto no vacío
     const byStatus =
       arr.find(
         (it) =>
@@ -149,7 +199,9 @@ async function generateLyricsAndGetText(
     throw new Error("Lyrics: SUCCESS pero no llegó texto en la respuesta");
   }
 
-  return { text, title };
+  // Recorte final para asegurar letra corta
+  const short = makeShortLyrics(text);
+  return { text: short, title };
 }
 
 /** 2) Enviar a /generate (devuelve taskId para polling desde frontend) */
@@ -167,42 +219,55 @@ export async function POST(req: NextRequest) {
         { error: "Configura MUSIC_API_KEY" },
         { status: 500 }
       );
+
     const input = Body.parse(await req.json());
 
     let lyricsToUse: string;
     let finalTitle = input.title?.trim();
 
     if (input.mode === "autoLyrics") {
-      // 👇 Fallback si no hay themePrompt (mobile)
+      // Fallback ultra-corto si no mandan themePrompt
       const promptBase =
-        input.themePrompt?.trim() ||
-        `Genera una letra en español, con estructura [Verse]/[Chorus], tema: identidad GOAT, tono emocionante, estilo ${input.style}.`;
+        input.themePrompt?.trim() || "Identidad GOAT, tono emocionante.";
 
       const { text, title: apiTitle } = await generateLyricsAndGetText(
-        promptBase
+        promptBase,
+        input.style
       );
       lyricsToUse = text;
       if (!finalTitle || finalTitle.length === 0)
-        finalTitle = apiTitle || "Mi Canción";
+        finalTitle = apiTitle || DEFAULT_SHORT_TITLE;
     } else {
-      // (no lo usamos en este flujo, pero queda para compatibilidad)
+      // Modo lyrics: recortamos si viene largo
       if (!input.lyrics?.trim())
         return NextResponse.json(
           { error: "lyrics es requerido en modo lyrics" },
           { status: 400 }
         );
-      lyricsToUse = input.lyrics.trim();
-      if (!finalTitle || finalTitle.length === 0) finalTitle = "Mi Canción";
+      lyricsToUse = makeShortLyrics(input.lyrics.trim());
+      if (!finalTitle || finalTitle.length === 0) finalTitle = DEFAULT_SHORT_TITLE;
     }
+
+    // Reforzar negativamente elementos largos/repetitivos
+    const negative = [
+      input.negativeTags || "",
+      "long intro",
+      "extended outro",
+      "long bridge",
+      "long instrumental",
+      "repetitive chorus",
+    ]
+      .filter(Boolean)
+      .join(", ");
 
     const generatePayload = {
       customMode: true,
       instrumental: false,
       model: input.model,
-      negativeTags: input.negativeTags,
+      negativeTags: negative,
       style: input.style.trim(),
       title: finalTitle,
-      prompt: lyricsToUse,
+      prompt: lyricsToUse, // ya viene corto
       callBackUrl: "https://example.com/callback",
     };
 

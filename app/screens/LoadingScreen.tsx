@@ -26,7 +26,6 @@ function Waveform({
     if (active && analyser) {
       const bufferLength = analyser.frequencyBinCount;
       const dataArray = new Uint8Array(bufferLength);
-
       const draw = () => {
         const w = canvas.width;
         const h = canvas.height;
@@ -49,12 +48,11 @@ function Waveform({
         rafRef.current = requestAnimationFrame(draw);
       };
       draw();
-
       cleanup = () => {
         if (rafRef.current) cancelAnimationFrame(rafRef.current);
       };
     } else {
-      // Placeholder animado para que SIEMPRE haya ondas visibles
+      // Placeholder animado
       let t = 0;
       const drawPlaceholder = () => {
         const w = canvas.width;
@@ -62,7 +60,6 @@ function Waveform({
         cctx.clearRect(0, 0, w, h);
         const bars = 32;
         const barWidth = w / bars;
-
         for (let i = 0; i < bars; i++) {
           const v = (Math.sin(t + i * 0.4) + 1) / 2;
           const barHeight = 4 + v * (h - 8);
@@ -76,7 +73,6 @@ function Waveform({
         rafRef.current = requestAnimationFrame(drawPlaceholder);
       };
       drawPlaceholder();
-
       cleanup = () => {
         if (rafRef.current) cancelAnimationFrame(rafRef.current);
       };
@@ -117,24 +113,32 @@ export default function LoadingScreen({
   status,
   streamUrl,
   onCancel,
+  onAutoProceed,
+  autoProceedMs = 20000,
 }: {
   status: string;
   streamUrl: string | null;
   onCancel: () => void;
+  onAutoProceed?: () => void;
+  autoProceedMs?: number;
 }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
-
-  // WebAudio
   const audioCtxRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
 
   const [playState, setPlayState] = useState<PlayState>("idle");
-  const [audioReady, setAudioReady] = useState(false); // solo para UI
+  const [audioReady, setAudioReady] = useState(false);
   const hasStream =
     typeof streamUrl === "string" && streamUrl.trim().length > 0;
 
-  // Intento de autoplay cuando llega streamUrl, pero el UI NO depende del analyser
+  // Autopasar a player tras ~20s
+  useEffect(() => {
+    if (!onAutoProceed) return;
+    const t = setTimeout(() => onAutoProceed(), autoProceedMs);
+    return () => clearTimeout(t);
+  }, [onAutoProceed, autoProceedMs]);
+
   useEffect(() => {
     if (!hasStream || !audioRef.current) return;
     const el = audioRef.current;
@@ -162,7 +166,7 @@ export default function LoadingScreen({
       .then(() => {
         setPlayState("playing");
         setAudioReady(true);
-        ensureAudioGraph(); // Intentamos visualizador, pero SI FALLA no afecta al UI
+        ensureAudioGraph();
       })
       .catch(() => setPlayState("blocked"));
 
@@ -198,7 +202,6 @@ export default function LoadingScreen({
         analyserRef.current = analyser;
       }
     } catch {
-      // CORS / políticas pueden bloquear el visualizador: no rompemos nada
       analyserRef.current = null;
     }
   };
@@ -248,7 +251,6 @@ export default function LoadingScreen({
 
   return (
     <div className="w-full min-h-screen relative text-white flex flex-col overflow-hidden">
-      {/* Video de fondo */}
       <video
         className="absolute top-0 left-0 w-full h-full object-cover z-0"
         src="/assets/fondo_animado.mp4"
@@ -257,15 +259,11 @@ export default function LoadingScreen({
         muted
         playsInline
       />
-
-      {/* Lenovo (solo desktop/tablet) */}
       <img
         src="/assets/TABLET/SVG/LOGOS_LENOVO.svg"
         alt="Lenovo"
         className="hidden md:block absolute right-0 top-10 h-28 z-30"
       />
-
-      {/* Header logos */}
       <header className="pt-6 md:pt-8 relative z-10">
         <div className="flex justify-center">
           <img
@@ -276,9 +274,7 @@ export default function LoadingScreen({
         </div>
       </header>
 
-      {/* Centro */}
       <main className="flex-1 flex flex-col items-center justify-center px-4 md:px-8 relative z-10">
-        {/* Loader + texto */}
         <div className="mt-8 md:mt-4 mb-6 flex flex-col items-center">
           <svg
             className="w-24 h-24 md:w-28 md:h-28"
@@ -315,19 +311,15 @@ export default function LoadingScreen({
             Estado:{" "}
             <b>
               {(() => {
-                if (status === "-" || status === "PENDING") {
+                if (status === "-" || status === "PENDING")
                   return "Generando letra";
-                }
-                if (status === "TEXT_SUCCESS") {
-                  return "Generando canción";
-                }
-                return status; // cualquier otro estado se muestra tal cual
+                if (status === "TEXT_SUCCESS") return "Generando canción";
+                return status;
               })()}
             </b>
           </div>
         </div>
 
-        {/* Tarjeta glass con copy */}
         <div className="w-full max-w-3xl rounded-[24px] bg-white/10 backdrop-blur-md border border-white/30 shadow-[0_20px_50px_rgba(0,0,0,0.35)] px-5 py-6 md:px-8 md:py-7">
           <h2 className="text-lg md:text-2xl font-extrabold mb-2">
             ¡Escucha más allá del ritmo!
@@ -338,12 +330,10 @@ export default function LoadingScreen({
           </p>
         </div>
 
-        {/* Player: SIEMPRE visible si streamUrl tiene contenido */}
         {hasStream && (
           <div className="w-full max-w-3xl mt-6">
             <div className="relative h-16 w-full rounded-xl bg-white/10 border border-white/20 overflow-hidden">
               <div className="absolute inset-0 px-4 flex items-center gap-4">
-                {/* Controles/estado */}
                 {playState === "blocked" ? (
                   <button
                     onClick={handleActivate}
@@ -355,8 +345,6 @@ export default function LoadingScreen({
                 ) : (
                   <span className="text-xs opacity-85">{pill}</span>
                 )}
-
-                {/* Waveform SIEMPRE visible (placeholder si no hay analyser) */}
                 <div className="flex-1 h-8">
                   <Waveform
                     analyser={analyserRef.current}
@@ -366,7 +354,6 @@ export default function LoadingScreen({
               </div>
             </div>
 
-            {/* Audio fuente */}
             <audio
               ref={audioRef}
               className="hidden"
@@ -375,14 +362,12 @@ export default function LoadingScreen({
               preload="auto"
               crossOrigin="anonymous"
             />
-
             <div className="text-xs opacity-70 mt-2">
               Escuchando en streaming mientras se genera…
             </div>
           </div>
         )}
 
-        {/* Botón cancelar */}
         <div className="mt-8 pb-8">
           <button
             onClick={onCancel}
