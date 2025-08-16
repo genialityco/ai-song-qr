@@ -1,3 +1,5 @@
+import type { Timestamp } from "firebase/firestore";
+
 export interface FormData {
     id: string;
     nombre: string;
@@ -5,7 +7,7 @@ export interface FormData {
     correo: string;
     empresa: string;
     cargo: string;
-    createdAt: any; 
+    createdAt: Timestamp;
 }
 
 export interface FormErrors {
