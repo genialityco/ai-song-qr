@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { surveyService, type SurveyRecord } from "../services/SurveyService";
+import { FormData } from "../survey/interfaces";
+import { surveyService } from "../services/SurveyService";
+import type { Timestamp } from "firebase/firestore";
 
 interface SurveyTableProps {
     refreshTrigger?: number; // Para forzar actualización cuando se agregue un nuevo registro
@@ -9,7 +11,7 @@ interface SurveyTableProps {
 }
 
 export default function SurveyTable({ refreshTrigger = 0, className = "" }: SurveyTableProps) {
-    const [surveys, setSurveys] = useState<SurveyRecord[]>([]);
+    const [surveys, setSurveys] = useState<FormData[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string>("");
     const [totalCount, setTotalCount] = useState<number>(0);
@@ -42,18 +44,15 @@ export default function SurveyTable({ refreshTrigger = 0, className = "" }: Surv
         }
     };
 
-    const formatDate = (timestamp: any) => {
+    const formatDate = (timestamp: Timestamp | null | undefined): string => {
         if (!timestamp) return "N/A";
-        if (timestamp.toDate) {
-            return timestamp.toDate().toLocaleDateString('es-ES', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-        }
-        return "N/A";
+        return timestamp.toDate().toLocaleDateString("es-ES", {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+        });
     };
 
     const exportToCSV = () => {
