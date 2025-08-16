@@ -36,13 +36,26 @@ export default function SurveyForm({ onSuccess, onSubmitStart, onSubmitEnd }: Su
         correo: validateCorreo,
         empresa: validateEmpresa,
         cargo: validateCargo,
+        createdAt: function (v: string): string | undefined {
+            throw new Error("Function not implemented.");
+        },
+        id: function (v: string): string | undefined {
+            throw new Error("Function not implemented.");
+        }
     };
 
     const validateForm = (): boolean => {
         const newErrors: FormErrors = {};
         (Object.keys(formData) as (keyof FormData)[]).forEach((key) => {
-            const error = validators[key](formData[key]);
-            if (error) newErrors[key] = error;
+            const value = formData[key];
+            const error =
+                typeof value === "string"
+                    ? validators[key](value)
+                    : undefined;
+            // Only assign errors for keys that exist in FormErrors
+            if (error && key in newErrors) {
+                newErrors[key as keyof FormErrors] = error;
+            }
         });
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
