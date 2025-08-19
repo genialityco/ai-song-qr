@@ -255,9 +255,9 @@ export default function SurveyClient() {
           </div>
         )}
 
-        {enviado && showParticipants && (
+        {/* {enviado && showParticipants && (
           <SurveyTable refreshTrigger={tableRefreshTrigger} />
-        )}
+        )} */}
       </div>
     </div>
   );
