@@ -241,16 +241,6 @@ export default function SurveyClient() {
                   <div className="text-xs opacity-80">Estado: <b>{getStatusText()}</b></div>
                 </>
               )}
-
-              <div className="flex flex-col gap-2 pt-4">
-
-                <button
-                  onClick={() => setShowParticipants(!showParticipants)}
-                  className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg font-semibold text-sm"
-                >
-                  {showParticipants ? "Ocultar participantes" : "Ver participantes"}
-                </button>
-              </div>
             </div>
           </div>
         )}
