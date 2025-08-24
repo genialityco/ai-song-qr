@@ -1,14 +1,11 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
+import { SlideToStart } from "../components/SlideButton";
 
-type GenreCard = {
-  key: string;
-  label: string;
-  // imgIndex ya no es obligatorio: rotamos 01..06 automáticamente
-};
+/* --------------------------- Datos --------------------------- */
+type GenreCard = { key: string; label: string; };
 
 const CARDS: GenreCard[] = [
-  // Global
   { key: "pop", label: "Pop" },
   { key: "hip_hop_rap", label: "Hip-Hop / Rap" },
   { key: "rock_alt", label: "Rock / Alternativo" },
@@ -17,12 +14,12 @@ const CARDS: GenreCard[] = [
   { key: "salsa", label: "Salsa" },
 ];
 
-// helper para asignar fondo 01..06 en ciclo
 const bgForIndex = (i: number) => {
   const idx = ((i % 6) + 1).toString().padStart(2, "0");
   return `/assets/TABLET/IMG/BANDERINES_GENEROS-${idx}.png`;
 };
 
+/* --------------------------- Pantalla --------------------------- */
 export default function GenreSelectionScreen({
   style,
   setStyle,
@@ -38,47 +35,36 @@ export default function GenreSelectionScreen({
 }) {
   const canNext = !!style.trim();
 
+  const selectedIndex = CARDS.findIndex((c) => c.label === style);
+  const selectedBg = selectedIndex >= 0 ? bgForIndex(selectedIndex) : null;
+
+  const GRID_Y_OFFSET = -8;
+  const FOOTER_ORIGINAL_W = 1000;
+  const SLIDER_RIGHT_PX = 28;
+  const SLIDER_Y_OFFSET_PX = 0;
+  const SLIDER_X_OFFSET_PX = 0;
+
   return (
     <div className="w-full min-h-screen relative flex flex-col text-white overflow-hidden">
-      {/* Video de fondo */}
-      <video
-        className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none"
-        src="/assets/fondo_animado.mp4"
-        autoPlay
-        loop
-        muted
-        playsInline
-        preload="auto"
-        poster="/assets/FONDO_PANTALLA.png"
-      />
-      {/* Capa para contraste */}
-      <div className="absolute inset-0 bg-black/25 z-0 pointer-events-none" />
-
-      {/* Lenovo >= md */}
-      <img
-        src="/assets/TABLET/SVG/LOGOS_LENOVO.svg"
-        alt="Lenovo"
-        className="hidden md:block absolute right-0 top-10 h-28 z-30"
-      />
-
-      {/* Header */}
-      <div className="relative z-20 pt-6 md:pt-8">
+      {/* HEADER */}
+      <div className="relative z-20 pt-3 md:pt-4">
         <div className="flex justify-center">
           <img
             src="/assets/TABLET/SVG/LOGOS_INTEL+WINDOWS.svg"
             alt="Intel + Windows 11"
-            className="h-12 md:h-20"
+            className="h-10 md:h-16"
           />
         </div>
-        <div className="mt-4 text-center px-4">
-          <h1 className="text-2xl md:text-3xl font-extrabold">¡Carga exitosa!</h1>
-          <p className="mt-2 text-base md:text-lg text-white/90">
-            Elige el ritmo que te haga vibrar y edítalo como quieras.
-          </p>
+
+        <div className="mt-2 text-center px-4">
+          <img
+            src="/assets/PANTALLA/TEXT/TEXTOS-03.svg"
+            alt="¡Carga exitosa!"
+            className="mx-auto h-16 md:h-24 w-auto"
+          />
         </div>
 
-        {/* Back */}
-        <div className="absolute left-4 top-6 md:left-6 md:top-8">
+        <div className="absolute left-4 top-4 md:left-6 md:top-6">
           <button
             onClick={onBack}
             className="px-3 py-1 rounded bg-white/10 hover:bg-white/20"
@@ -89,21 +75,19 @@ export default function GenreSelectionScreen({
       </div>
 
       {/* GRID */}
-      <div className="relative z-10 flex-1 px-4 md:px-8 lg:px-12 w-full mx-auto max-w-6xl">
-        <div className="mt-6 md:mt-10 grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
+      <div
+        className="relative z-10 flex-none w-full mx-auto max-w-4xl px-3 md:px-6"
+        style={{ transform: `translateY(${GRID_Y_OFFSET}px)` }}
+      >
+        <div className="mt-2 md:mt-3 grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-3 md:gap-x-5 md:gap-y-4 justify-items-center">
           {CARDS.map((card, i) => {
             const selected = style === card.label;
             const bg = bgForIndex(i);
-
-            // Mobile: curvas hacia afuera (col 0: curva izq, col 1: curva der)
             const isRightColMobile = i % 2 === 1;
             const mobileRound = isRightColMobile
-              ? "rounded-r-[28px] rounded-l-none"
-              : "rounded-l-[28px] rounded-r-none";
-
-            // Desktop: todas curvas a la izquierda (derecha recta)
-            const desktopRound = "md:rounded-r-[28px] md:rounded-l-none";
-
+              ? "rounded-r-[22px] rounded-l-none"
+              : "rounded-l-[22px] rounded-r-none";
+            const desktopRound = "md:rounded-r-[22px] md:rounded-l-none";
             return (
               <button
                 key={card.key}
@@ -112,11 +96,10 @@ export default function GenreSelectionScreen({
                   "relative overflow-hidden",
                   mobileRound,
                   desktopRound,
-                  "shadow-[0_10px_28px_rgba(0,0,0,0.35)] transition transform text-center",
-                  "h-[118px] md:h-[144px]",
-                  selected
-                    ? "ring-2 ring-white/70 md:scale-[1.01]"
-                    : "hover:md:scale-[1.01]",
+                  "shadow-[0_8px_20px_rgba(0,0,0,0.35)] transition transform text-center",
+                  "w-[84%] md:w-[82%] max-w-[240px] md:max-w-[260px]",
+                  "h-[72px] md:h-[92px]",
+                  selected ? "ring-2 ring-white/70 md:scale-[1.01]" : "hover:md:scale-[1.01]",
                 ].join(" ")}
                 style={{
                   backgroundImage: `url('${bg}')`,
@@ -124,18 +107,15 @@ export default function GenreSelectionScreen({
                   backgroundPosition: "center",
                 }}
               >
-                {/* Overlay para legibilidad */}
                 <div className="absolute inset-0 bg-black/20" />
-
-                {/* Contenido centrado */}
-                <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 px-3">
-                  <div className="text-white font-semibold text-sm md:text-base drop-shadow">
+                <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-1 px-2">
+                  <div className="text-white font-semibold text-[11px] md:text-[13px] drop-shadow">
                     {card.label}
                   </div>
                   <span
                     className={[
-                      "inline-block text-xs md:text-[13px] leading-none",
-                      "px-3 py-2 rounded-md border",
+                      "inline-block leading-none",
+                      "text-[10px] md:text-[12px] px-2 py-1 rounded-md border",
                       selected
                         ? "bg-white text-black border-white"
                         : "bg-transparent text-white border-white/70 hover:bg-white/10",
@@ -149,23 +129,52 @@ export default function GenreSelectionScreen({
           })}
         </div>
 
-        {error && <div className="mt-4 text-center text-red-300">{error}</div>}
+        {error && <div className="mt-2 text-center text-red-300 text-sm">{error}</div>}
       </div>
 
-      {/* Botón Crear */}
-      <div className="relative z-20 mt-6 mb-8 flex justify-center px-4">
-        <button
-          onClick={onNext}
-          disabled={!canNext}
-          className={[
-            "bg-[url('/assets/TABLET/IMG/BOTON.png')] bg-no-repeat bg-center bg-contain",
-            "w-full max-w-[360px] h-[64px] text-[#002060] text-[26px] md:text-[28px]",
-            !canNext ? "opacity-60 grayscale pointer-events-none" : "transition",
-          ].join(" ")}
-          style={{ cursor: canNext ? "pointer" : "default" }}
-        >
-          Crear
-        </button>
+      {/* --- MOBILE: slider arriba e imagen debajo (sin chip duplicado) --- */}
+      <div className="relative z-20 mt-6 mb-8 px-4 md:hidden">
+        <div className="relative mx-auto w-full max-w-[380px]">
+          <SlideToStart
+            onComplete={onNext}
+            disabled={!canNext}
+            selectedLabel={canNext ? style : undefined}
+            selectedBg={selectedBg}
+            className="w-full"
+          />
+          <img
+            src="/assets/PANTALLA/TEXT/CAJA-DE-TEXTO_FOOTER_PANTALLA.png"
+            alt="Beneficios Lenovo VoIP"
+            className="block w-full h-auto rounded-xl mt-4"
+          />
+        </div>
+      </div>
+
+      {/* --- DESKTOP: imagen base + slider sobrepuesto a la derecha --- */}
+      <div className="relative z-20 mt-6 mb-8 px-4 hidden md:block">
+        <div className="relative mx-auto" style={{ width: `min(100%, ${FOOTER_ORIGINAL_W}px)` }}>
+          <img
+            src="/assets/PANTALLA/TEXT/FOOTER_BARRA_NEGRA.png"
+            alt="Beneficios Lenovo VoIP"
+            className="block w-full h-auto select-none pointer-events-none rounded-xl"
+          />
+          <div
+            className="absolute z-10 flex flex-col items-end gap-3"
+            style={{
+              top: "50%",
+              right: SLIDER_RIGHT_PX,
+              transform: `translate(${SLIDER_X_OFFSET_PX}px, calc(-50% + ${SLIDER_Y_OFFSET_PX}px))`,
+            }}
+          >
+            <SlideToStart
+              onComplete={onNext}
+              disabled={!canNext}
+              selectedLabel={canNext ? style : undefined}
+              selectedBg={selectedBg}
+              className="w-[340px] md:w-[420px]"
+            />
+          </div>
+        </div>
       </div>
     </div>
   );

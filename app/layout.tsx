@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 };
 
 const LENOVO_OFFSET_TOP = "50px";               // distancia desde arriba (ej: "0px", "8px", "24px")
-const LENOVO_HEIGHT = "clamp(96px, 18vh, 120px)";
+const LENOVO_HEIGHT = "clamp(96px, 18vh, 100px)";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
