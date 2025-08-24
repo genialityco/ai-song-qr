@@ -146,8 +146,6 @@ export default function StartScreen({
  */
 function LogoIW({ height, width }: { height?: number; width?: number }) {
   const LOGO_SOURCES = [
-    "/assets/TABLET/SVG/LOGOS_INTEL%2BWINDOWS.svg",
-    "/assets/TABLET/SVG/LOGOS_INTEL+WINDOWS.svg",
     "/assets/TABLET/SVG/LOGOS-WIN%2BINTEL.png",
     "/assets/TABLET/SVG/LOGOS-WIN+INTEL.png",
     "/assets/TABLET/SVG/LOGOS_INTEL_WINDOWS.svg",

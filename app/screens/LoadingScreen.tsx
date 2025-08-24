@@ -189,7 +189,7 @@ export default function LoadingScreen({
         audioCtxRef.current = new AC();
       }
       if (audioCtxRef.current.state === "suspended") {
-        await audioCtxRef.current.resume().catch(() => {});
+        await audioCtxRef.current.resume().catch(() => { });
       }
       if (!sourceRef.current || !analyserRef.current) {
         const ctx = audioCtxRef.current!;
@@ -223,7 +223,7 @@ export default function LoadingScreen({
         sourceRef.current?.disconnect();
         analyserRef.current?.disconnect();
         audioCtxRef.current?.close();
-      } catch {}
+      } catch { }
       sourceRef.current = null;
       analyserRef.current = null;
       audioCtxRef.current = null;
@@ -250,36 +250,29 @@ export default function LoadingScreen({
   })();
 
   return (
-    <div className="w-full min-h-screen relative text-white flex flex-col overflow-hidden">
-      <video
-        className="absolute top-0 left-0 w-full h-full object-cover z-0"
-        src="/assets/fondo_animado.mp4"
-        autoPlay
-        loop
-        muted
-        playsInline
-      />
-      <img
-        src="/assets/TABLET/SVG/LOGOS_LENOVO.svg"
-        alt="Lenovo"
-        className="hidden md:block absolute right-0 top-10 h-28 z-30"
-      />
-      <header className="pt-6 md:pt-8 relative z-10">
+    <div className="w-full h-[100svh] relative text-white flex flex-col overflow-hidden">
+      {/* Header (ligeramente más compacto) */}
+      <header className="pt-3 md:pt-8 relative z-10">
         <div className="flex justify-center">
           <img
-            src="/assets/TABLET/SVG/LOGOS_INTEL+WINDOWS.svg"
+            src="/assets/TABLET/SVG/LOGOS-WIN+INTEL.png"
             alt="Intel + Windows 11"
-            className="h-12 md:h-18"
+            className="h-10 md:h-16 select-none pointer-events-none"
           />
         </div>
       </header>
 
-      <main className="flex-1 flex flex-col items-center justify-center px-4 md:px-8 relative z-10">
-        <div className="mt-8 md:mt-4 mb-6 flex flex-col items-center">
+      {/* Desplazamos TODO el contenido principal hacia arriba en mobile */}
+      <main className="flex-1 flex flex-col items-center justify-center px-4 md:px-8 relative z-10 overflow-hidden -mt-8 md:mt-0">
+        {/* BLOQUE LOADER + TEXTO */}
+        <div className="mt-2 md:mt-4 mb-2 md:mb-4 flex flex-col items-center w-full">
+          {/* Spinner más grande en mobile */}
           <svg
-            className="w-24 h-24 md:w-28 md:h-28"
+            className="w-28 h-28 md:w-32 md:h-32"
             viewBox="0 0 100 100"
             fill="none"
+            aria-label="Cargando"
+            role="img"
           >
             <circle
               cx="50"
@@ -304,48 +297,48 @@ export default function LoadingScreen({
               />
             </path>
           </svg>
-          <div className="mt-3 text-xl md:text-2xl font-extrabold">
-            Cargando
+
+          {/* Píldora "Cargando música…" */}
+          <div className="mt-3 w-full max-w-[22rem] md:max-w-md rounded-2xl bg-black/90 border border-white/20 px-5 py-3 text-center shadow-[0_10px_30px_rgba(0,0,0,0.4)]">
+            <span className="text-sm md:text-base font-semibold tracking-wide">
+              Cargando música…
+            </span>
           </div>
-          <div className="mt-1 text-xs md:text-sm opacity-70">
-            Estado:{" "}
-            <b>
-              {(() => {
-                if (status === "-" || status === "PENDING")
-                  return "Generando letra";
-                if (status === "TEXT_SUCCESS") return "Generando canción";
-                return status;
-              })()}
-            </b>
+
+          {/* Imagen inferior con límites para evitar scroll en mobile */}
+          <div className="mt-3 w-full flex items-center justify-center">
+            {/* Móvil / tablets pequeñas */}
+            <img
+              src="/assets/PANTALLA/IMG/CAJA_TEXTO_PANTALLA.png"
+              alt="Caja de texto"
+              className="block md:hidden w-full max-w-[22rem] max-h-44 object-contain"
+            />
+            {/* Web / desktop */}
+            <img
+              src="/assets/PANTALLA/IMG/CUADRO-TEXTOS.png"
+              alt="Cuadro de textos"
+              className="hidden md:block w-full max-w-2xl"
+            />
           </div>
         </div>
 
-        <div className="w-full max-w-3xl rounded-[24px] bg-white/10 backdrop-blur-md border border-white/30 shadow-[0_20px_50px_rgba(0,0,0,0.35)] px-5 py-6 md:px-8 md:py-7">
-          <h2 className="text-lg md:text-2xl font-extrabold mb-2">
-            ¡Escucha más allá del ritmo!
-          </h2>
-          <p className="text-sm md:text-base text-white/90 leading-relaxed">
-            Con Live Captions de <span className="font-bold">Copilot+PC</span>{" "}
-            traduce canciones y reuniones al instante.
-          </p>
-        </div>
-
+        {/* TARJETA INFORMATIVA (streaming) */}
         {hasStream && (
-          <div className="w-full max-w-3xl mt-6">
-            <div className="relative h-16 w-full rounded-xl bg-white/10 border border-white/20 overflow-hidden">
-              <div className="absolute inset-0 px-4 flex items-center gap-4">
+          <div className="w-full max-w-[22rem] md:max-w-3xl mt-4 md:mt-6">
+            <div className="relative h-14 md:h-16 w-full rounded-xl bg-white/10 border border-white/20 overflow-hidden">
+              <div className="absolute inset-0 px-3 md:px-4 flex items-center gap-3 md:gap-4">
                 {playState === "blocked" ? (
                   <button
                     onClick={handleActivate}
-                    className="px-3 py-1 rounded bg-white/15 hover:bg-white/25 text-sm"
+                    className="px-3 py-1 rounded bg-white/15 hover:bg-white/25 text-xs md:text-sm"
                     title="Activar audio"
                   >
                     Activar audio ▶
                   </button>
                 ) : (
-                  <span className="text-xs opacity-85">{pill}</span>
+                  <span className="text-[11px] md:text-xs opacity-80 truncate">{pill}</span>
                 )}
-                <div className="flex-1 h-8">
+                <div className="flex-1 h-7 md:h-8">
                   <Waveform
                     analyser={analyserRef.current}
                     active={audioReady && !!analyserRef.current}
@@ -362,21 +355,27 @@ export default function LoadingScreen({
               preload="auto"
               crossOrigin="anonymous"
             />
-            <div className="text-xs opacity-70 mt-2">
+
+            <div className="text-[11px] md:text-xs opacity-70 mt-2 text-center md:text-left">
               Escuchando en streaming mientras se genera…
             </div>
           </div>
         )}
 
-        <div className="mt-8 pb-8">
-          <button
-            onClick={onCancel}
-            className="px-6 py-2 rounded bg-white/10 hover:bg-white/20 transition"
-          >
-            Cancelar
-          </button>
-        </div>
+        {/* Botón Cancelar comentado */}
+        {/*
+      <div className="mt-8 pb-8">
+        <button
+          onClick={onCancel}
+          className="px-6 py-2 rounded bg-white/10 hover:bg-white/20 transition"
+        >
+          Cancelar
+        </button>
+      </div>
+      */}
       </main>
     </div>
   );
-}
+
+
+};

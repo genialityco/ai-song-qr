@@ -50,7 +50,7 @@ export default function GenreSelectionScreen({
       <div className="relative z-20 pt-3 md:pt-4">
         <div className="flex justify-center">
           <img
-            src="/assets/TABLET/SVG/LOGOS_INTEL+WINDOWS.svg"
+            src="/assets/TABLET/SVG/LOGOS-WIN+INTEL.png"
             alt="Intel + Windows 11"
             className="h-10 md:h-16"
           />
