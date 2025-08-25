@@ -117,7 +117,6 @@ export default function SlideToStart({
 
     return (
         <div className="relative select-none">
-            {/* TRACK */}
             <div
                 ref={trackRef}
                 className={[
@@ -167,7 +166,6 @@ export default function SlideToStart({
                     </div>
                 )}
 
-                {/* KNOB / CARD */}
                 <button
                     ref={knobRef}
                     type="button"
@@ -180,10 +178,10 @@ export default function SlideToStart({
                     className={[
                         "absolute top-1/2 -translate-y-1/2",
                         "w-[220px] md:w-auto md:min-w-[220px]",
-                        `h-[${KNOB_H}px]`,                     // usa la constante (evita warning)
-                        "pl-3 pr-4 flex items-center gap-3",
+                        `h-[${KNOB_H}px]`,
+                        "flex items-center justify-center", // centramos contenido
                         "bg-white/12 backdrop-blur-sm text-white",
-                        "border border-white/40 rounded-full",
+                        "border border-white/40 rounded-full overflow-hidden", // 👉 deja que la imagen ocupe todo
                         "shadow-[0_10px_20px_rgba(0,0,0,0.35)]",
                         "cursor-grab active:cursor-grabbing touch-none",
                         "z-[33] min-w-0",
@@ -192,28 +190,30 @@ export default function SlideToStart({
                     ].join(" ")}
                     style={{
                         left: LANE_PADDING + x,
-                        height: KNOB_H,                         // y aquí también
+                        height: KNOB_H,
                         maxWidth: `calc(100% - ${LANE_PADDING * 2}px)`,
                     }}
                     aria-label="Desliza para confirmar"
                 >
-                    {/* miniatura */}
-                    <div className="shrink-0 w-[32px] h-[24px] rounded-lg overflow-hidden bg-white/10 ring-1 ring-white/25">
-                        {selectedBg && (
+                    {selectedBg && (
+                        <div className="w-full h-full overflow-hidden">
                             <img
                                 src={selectedBg}
-                                alt=""
+                                alt="preview"
                                 className="w-full h-full object-cover"
-                                style={{ objectPosition: "15% center" }}
+                                style={{ transform: "translateX(-0%)" }} // 👈 ajusta el -20% a tu gusto
                             />
-                        )}
-                    </div>
+                        </div>
 
-                    {/* texto */}
-                    <span className="font-semibold text-[13px] sm:text-sm leading-none truncate">
-                        {selectedLabel ?? "Desliza para empezar"}
+                    )}
+
+                    {/* texto opcional */}
+                    <span className="absolute bottom-1  font-semibold" style={{ transform: "translate(25%, -50%)" }}>
+                        {selectedLabel}
                     </span>
+
                 </button>
+
             </div>
         </div>
     );
