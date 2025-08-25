@@ -194,14 +194,7 @@ export default function SurveyClient() {
 
   return (
     <div className="w-full min-h-screen relative flex flex-col items-center justify-start text-white overflow-hidden py-6">
-      <video
-        className="absolute inset-0 w-full h-full object-cover z-0"
-        src="/assets/fondo_animado.mp4"
-        autoPlay loop muted playsInline preload="auto"
-        poster="/assets/FONDO_PANTALLA.png"
-      />
       <div className="absolute inset-0 bg-black/40 z-0" />
-
       <div className="relative z-10 w-full max-w-4xl px-4 space-y-6">
         <div className="bg-white/10 backdrop-blur-md p-6 rounded-2xl shadow-lg">
           <MiniPlayer src={audioUrl || null} />

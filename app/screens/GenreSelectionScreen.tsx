@@ -1,6 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
-import { SlideToStart } from "../components/SlideButton";
+import SlideToStart  from "../components/SlideButton";
 
 /* --------------------------- Datos --------------------------- */
 type GenreCard = { key: string; label: string; };

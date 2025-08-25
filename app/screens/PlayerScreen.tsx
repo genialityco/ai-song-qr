@@ -4,6 +4,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { QRCodeCanvas } from "qrcode.react";
+import LogoIW from "../components/LogoIW";
+import Waveform from "../components/WaveForm";
 
 function slugify(s: string) {
   return (s || "cancion")
@@ -14,98 +16,12 @@ function slugify(s: string) {
     .replace(/(^-|-$)+/g, "");
 }
 
+// URL base para el QR (configurable por entorno)
+const BASE_URL =
+  process.env.NEXT_PUBLIC_BASE_URL ??
+  (typeof window !== "undefined" ? window.location.origin : "");
+
 /** Waveform dibuja usando un AnalyserNode externo */
-function Waveform({
-  analyser,
-  active,
-}: {
-  analyser: AnalyserNode | null;
-  active: boolean;
-}) {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const rafRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const cctx = canvas.getContext("2d");
-    if (!cctx) return;
-
-    let cleanup: (() => void) | null = null;
-
-    if (active && analyser) {
-      const bufferLength = analyser.frequencyBinCount;
-      const dataArray = new Uint8Array(bufferLength);
-      const draw = () => {
-        const w = canvas.width,
-          h = canvas.height;
-        cctx.clearRect(0, 0, w, h);
-        analyser.getByteFrequencyData(dataArray);
-        const bars = 48,
-          step = Math.max(1, Math.floor(bufferLength / bars)),
-          barWidth = w / bars;
-        for (let i = 0; i < bars; i++) {
-          const v = dataArray[i * step] / 255;
-          const barHeight = Math.max(2, v * (h - 4));
-          const x = i * barWidth,
-            y = (h - barHeight) / 2;
-          cctx.globalAlpha = 0.9;
-          cctx.fillStyle = "#ffffff";
-          cctx.fillRect(x + 1, y, barWidth - 2, barHeight);
-        }
-        rafRef.current = requestAnimationFrame(draw);
-      };
-      draw();
-      cleanup = () => {
-        if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      };
-    } else {
-      let t = 0;
-      const drawPlaceholder = () => {
-        const w = canvas.width,
-          h = canvas.height;
-        cctx.clearRect(0, 0, w, h);
-        const bars = 32,
-          barWidth = w / bars;
-        for (let i = 0; i < bars; i++) {
-          const v = (Math.sin(t + i * 0.4) + 1) / 2;
-          const barHeight = 4 + v * (h - 8);
-          const x = i * barWidth,
-            y = (h - barHeight) / 2;
-          cctx.globalAlpha = 0.6;
-          cctx.fillStyle = "#ffffff";
-          cctx.fillRect(x + 1, y, barWidth - 2, barHeight);
-        }
-        t += 0.08;
-        rafRef.current = requestAnimationFrame(drawPlaceholder);
-      };
-      drawPlaceholder();
-      cleanup = () => {
-        if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      };
-    }
-    return () => cleanup?.();
-  }, [active, analyser]);
-
-  useEffect(() => {
-    const resize = () => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      const dpr = Math.max(1, window.devicePixelRatio || 1);
-      const rect = canvas.getBoundingClientRect();
-      canvas.width = Math.round(rect.width * dpr);
-      canvas.height = Math.round(rect.height * dpr);
-      const cctx = canvas.getContext("2d");
-      cctx?.setTransform(dpr, 0, 0, dpr, 0, 0);
-    };
-    resize();
-    window.addEventListener("resize", resize);
-    return () => window.removeEventListener("resize", resize);
-  }, []);
-
-  return <canvas ref={canvasRef} className="w-full h-full" />;
-}
-
 export default function PlayerScreen({
   audioUrl,
   title,
@@ -127,15 +43,15 @@ export default function PlayerScreen({
   const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
   const [, setAnalyserReady] = useState(false);
 
+  // ✅ Estado listo si hay audio real
   const ready = !!audioUrl;
 
-  // URL encuesta con taskId y flag final
+  // URL encuesta para el QR
   const urlSurvey = ready
-    ? `${window.location.origin}/survey?src=${encodeURIComponent(
-        audioUrl!
-      )}&filename=${encodeURIComponent(`${slugify(title)}.mp3`)}&final=${
-        isFinal ? "1" : "0"
-      }${taskId ? `&taskId=${encodeURIComponent(taskId)}` : ""}`
+    ? `${BASE_URL}/survey?src=${encodeURIComponent(
+      audioUrl!
+    )}&filename=${encodeURIComponent(`${slugify(title)}.mp3`)}&final=${isFinal ? "1" : "0"
+    }${taskId ? `&taskId=${encodeURIComponent(taskId)}` : ""}`
     : "";
 
   useEffect(() => {
@@ -154,7 +70,7 @@ export default function PlayerScreen({
     };
   }, []);
 
-  // Cambios de URL (stream -> final): intentar mantener reproducción
+  // Cambios de URL (stream -> final): mantener reproducción si estaba sonando
   useEffect(() => {
     const el = audioRef.current;
     if (!el) return;
@@ -170,18 +86,18 @@ export default function PlayerScreen({
       if (wasPlaying && audioUrl) {
         try {
           el.currentTime = prevTime;
-        } catch {}
-        el.play().catch(() => {});
+        } catch { }
+        el.play().catch(() => { });
         setIsPlaying(true);
       } else {
         setIsPlaying(false);
       }
-    } catch {}
+    } catch { }
 
     try {
       sourceRef.current?.disconnect();
       analyserRef.current?.disconnect();
-    } catch {}
+    } catch { }
     sourceRef.current = null;
     analyserRef.current = null;
     setAnalyserReady(false);
@@ -194,7 +110,7 @@ export default function PlayerScreen({
       audioCtxRef.current = new AC();
     }
     if (audioCtxRef.current.state === "suspended") {
-      await audioCtxRef.current.resume().catch(() => {});
+      await audioCtxRef.current.resume().catch(() => { });
     }
     if (!sourceRef.current || !analyserRef.current) {
       const ctx = audioCtxRef.current;
@@ -231,146 +147,424 @@ export default function PlayerScreen({
         sourceRef.current?.disconnect();
         analyserRef.current?.disconnect();
         audioCtxRef.current?.close();
-      } catch {}
+      } catch { }
       sourceRef.current = null;
       analyserRef.current = null;
       audioCtxRef.current = null;
     };
   }, []);
 
+  const MOBILE_LOGO_HEIGHT = 56;
+  const MOBILE_LOGO_WIDTH: number | undefined = undefined;
+
+  // --- QR config MOBILE ---
+  const QR_M_LEFT = "30%";
+  const QR_M_TOP = "15%";
+  const QR_M_SIZE = 58;
+
+  // --- QR config DESKTOP ---
+  const QR_D_LEFT = "39%";
+  const QR_D_TOP = "16%";
+  const QR_D_SIZE = 50;
+
   return (
-    <div className="w-full min-h-screen relative flex flex-col items-center justify-center text-white overflow-hidden">
-      <video
-        className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none"
-        src="/assets/fondo_animado.mp4"
-        autoPlay
-        loop
-        muted
+    <div className="w-full min-h-screen relative flex flex-col items-center justify-start text-white overflow-hidden">
+      {/* ======== MOBILE (PRE-READY) ======== */}
+      {!ready && (
+        <>
+          <div className="relative mt-4 mx-auto w-[min(84vw,340px)] md:hidden">
+            <div className="w-full flex justify-center mb-1">
+              <LogoIW height={MOBILE_LOGO_HEIGHT} width={MOBILE_LOGO_WIDTH} />
+            </div>
+            <div className="relative">
+              <img
+                src="/assets/TABLET/IMG/MARCO_REPRODUCTOR.png"
+                alt="Marco reproductor"
+                className="block w-full h-auto select-none pointer-events-none"
+                draggable={false}
+              />
+
+              <div className="absolute inset-0">
+                <div
+                  className="
+                    absolute z-20 pointer-events-none
+                    left-1/2 -translate-x-1/2 top-[62%]
+                    w-[min(78%,220px)] h-[clamp(22px,6vh,36px)]
+                    overflow-hidden
+                  "
+                >
+                  <Waveform analyser={analyserRef.current} active={ready} />
+                </div>
+                <button
+                  onClick={toggle}
+                  className="
+                    absolute z-10 rounded-full shadow-lg transition
+                    active:scale-95 disabled:opacity-50
+                    left-1/2 -translate-x-1/2 top-[75%]
+                    w-[56px] h-[56px]
+                  "
+                  style={{ background: "#6b95ff" }}
+                  disabled={!ready}
+                  aria-label={isPlaying ? "Pausar" : "Reproducir"}
+                >
+                  {isPlaying ? (
+                    <div className="mx-auto w-4 h-4 flex gap-1">
+                      <span className="inline-block w-[6px] h-4 bg-white" />
+                      <span className="inline-block w-[6px] h-4 bg-white" />
+                    </div>
+                  ) : (
+                    <div
+                      style={{
+                        margin: "0 auto",
+                        width: 0,
+                        height: 0,
+                        borderTop: "10px solid transparent",
+                        borderBottom: "10px solid transparent",
+                        borderLeft: "16px solid white",
+                      }}
+                    />
+                  )}
+                </button>
+              </div>
+            </div>
+            <img
+              src="/assets/PANTALLA/IMG/CAJA_TEXTO_01.png"
+              alt="Caja de texto"
+              className="block w-full h-auto mt-2 select-none"
+              draggable={false}
+            />
+          </div>
+
+          {/* ===== DESKTOP (PRE-READY) ===== */}
+          <div className="hidden md:block">
+            <div className="relative mx-auto w-full max-w-[1500px] mt-6">
+              <div className="flex items-center justify-center gap-0">
+                {/* Izquierda */}
+                <div
+                  className="relative shrink-0 -mr-6"
+                  style={{
+                    width: "500px",
+                    height: "500px",
+                    backgroundImage: "url('/assets/TABLET/IMG/MARCO_REPRODUCTOR.png')",
+                    backgroundRepeat: "no-repeat",
+                    backgroundSize: "contain",
+                    backgroundPosition: "center",
+                  }}
+                >
+                  <div
+                    className="absolute z-20 pointer-events-none"
+                    style={{
+                      left: "27%",
+                      right: "12%",
+                      top: "60%",
+                      width: "230px",
+                      height: "42px",
+                      overflow: "hidden",
+                    }}
+                  >
+                    <Waveform analyser={analyserRef.current} active={ready} />
+                  </div>
+                  <button
+                    onClick={toggle}
+                    className="absolute z-10 rounded-full shadow-lg transition active:scale-95 disabled:opacity-50"
+                    style={{
+                      top: "80%",
+                      left: "50%",
+                      transform: "translate(-50%, -50%)",
+                      width: "62px",
+                      height: "62px",
+                      background: "#6b95ff",
+                    }}
+                    disabled={!ready}
+                    aria-label={isPlaying ? "Pausar" : "Reproducir"}
+                  >
+                    {isPlaying ? (
+                      <div className="mx-auto w-4 h-4 flex gap-1">
+                        <span className="inline-block w-[6px] h-4 bg-white" />
+                        <span className="inline-block w-[6px] h-4 bg-white" />
+                      </div>
+                    ) : (
+                      <div
+                        style={{
+                          margin: "0 auto",
+                          width: 0,
+                          height: 0,
+                          borderTop: "10px solid transparent",
+                          borderBottom: "10px solid transparent",
+                          borderLeft: "16px solid white",
+                        }}
+                      />
+                    )}
+                  </button>
+                </div>
+
+                {/* Derecha */}
+                <div className="relative -ml-10 lg:-ml-12 xl:-ml-14 2xl:-ml-16 flex flex-col items-start">
+                  <img
+                    src="/assets/PANTALLA/IMG/CAJA_TEXTO_01.png"
+                    alt="Caja de texto"
+                    className="block w-[min(46vw,620px)] h-auto"
+                    draggable={false}
+                  />
+                  <div className="mt-3 w-[min(46vw,620px)] flex justify-center">
+                    <LogoIW height={56} width={260} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ======== READY ======== */}
+      {ready && (
+        <>
+          {/* MOBILE (READY) */}
+          <div className="md:hidden w-full flex justify-center">
+            <div className="mt-2 w-[min(84vw,340px)]">
+              {/* Logo */}
+              <div className="w-full flex justify-center mb-2">
+                <LogoIW height={MOBILE_LOGO_HEIGHT} width={MOBILE_LOGO_WIDTH} />
+              </div>
+
+              {/* Marco + overlays */}
+              <div className="relative">
+                <img
+                  src="/assets/TABLET/IMG/MARCO_REPRODUCTOR_QR.png"
+                  alt="Marco reproductor"
+                  className="block w-full h-auto select-none pointer-events-none"
+                  draggable={false}
+                />
+
+                <div className="absolute inset-0">
+                  {/* QR (usa urlSurvey; fallback BASE_URL) */}
+                  <div
+                    className="absolute z-30 rounded-md bg-white p-1"
+                    style={{
+                      left: QR_M_LEFT,
+                      top: QR_M_TOP,
+                      transform: "translate(-50%, -50%)",
+                    }}
+                  >
+                    <QRCodeCanvas
+                      value={urlSurvey || BASE_URL}
+                      size={QR_M_SIZE}
+                      bgColor="#ffffff"
+                      fgColor="#000000"
+                      level="H"
+                      includeMargin={false}
+                    />
+                  </div>
+
+                  {/* Waveform */}
+                  <div
+                    className="
+                      absolute z-20 pointer-events-none
+                      left-1/2 -translate-x-1/2 -translate-y-1
+                      top-[56%]
+                      w-[min(78%,220px)] h-[clamp(22px,6vh,36px)]
+                      overflow-hidden
+                      [&>canvas]:w-full [&>canvas]:h-full
+                    "
+                  >
+                    <Waveform analyser={analyserRef.current} active={ready} />
+                  </div>
+
+                  {/* Controles (orden 02 - 01 - 03) */}
+                  <div
+                    className="
+                      absolute z-30 left-1/2 -translate-x-1/2
+                      top-[60%]
+                      flex items-center gap-4
+                    "
+                  >
+                    {/* 02 — Siguiente (izquierda, pequeño) */}
+                    <button
+                      type="button"
+                      aria-label="Siguiente canción"
+                      className="w-14 h-14 flex items-center justify-center bg-transparent p-0 cursor-pointer"
+                    >
+                      <img
+                        src="/assets/TABLET/SVG/ICONOS_REPRODUCTOR-02.svg"
+                        alt="Siguiente canción"
+                        className="w-7 h-7"
+                        draggable={false}
+                      />
+                    </button>
+
+                    {/* 01 — Pausa (centro, grande y funcional) */}
+                    <button
+                      type="button"
+                      onClick={toggle}
+                      aria-label={isPlaying ? "Pausar" : "Reproducir"}
+                      aria-pressed={isPlaying}
+                      className="w-20 h-20 flex items-center justify-center bg-transparent p-0 cursor-pointer"
+                    >
+                      <img
+                        src="/assets/TABLET/SVG/ICONOS_REPRODUCTOR-01.svg"
+                        alt="Pausar"
+                        className="w-10 h-10"
+                        draggable={false}
+                      />
+                    </button>
+
+                    {/* 03 — Reiniciar (derecha, pequeño) */}
+                    <button
+                      type="button"
+                      aria-label="Reiniciar canción"
+                      className="w-14 h-14 flex items-center justify-center bg-transparent p-0 cursor-pointer"
+                    >
+                      <img
+                        src="/assets/TABLET/SVG/ICONOS_REPRODUCTOR-03.svg"
+                        alt="Reiniciar canción"
+                        className="w-7 h-7"
+                        draggable={false}
+                      />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Texto debajo */}
+              <img
+                src="/assets/PANTALLA/TEXT/TEXTOS-02.svg"
+                alt="Texto"
+                className="block w-full h-auto mt-2 select-none"
+                draggable={false}
+              />
+            </div>
+          </div>
+
+          {/* DESKTOP (READY) */}
+          <div className="hidden md:block">
+            <div className="relative mx-auto w-full max-w-[1500px] mt-6">
+              <div className="flex items-center justify-center gap-0">
+                {/* Izquierda: Teléfono */}
+                <div
+                  className="relative shrink-0 -mr-6 min-w-[500px] min-h-[500px]"
+                  style={{
+                    width: "500px",
+                    height: "500px",
+                    backgroundImage: "url('/assets/TABLET/IMG/MARCO_REPRODUCTOR_QR.png')",
+                    backgroundRepeat: "no-repeat",
+                    backgroundSize: "contain",
+                    backgroundPosition: "center",
+                  }}
+                >
+                  {/* QR (usa urlSurvey) */}
+                  <div
+                    className="absolute z-30 rounded-md bg-white p-1"
+                    style={{
+                      left: QR_D_LEFT,
+                      top: QR_D_TOP,
+                      transform: "translate(-50%, -50%)",
+                    }}
+                  >
+                    <QRCodeCanvas
+                      value={urlSurvey || BASE_URL}
+                      size={QR_D_SIZE}
+                      bgColor="#ffffff"
+                      fgColor="#000000"
+                      level="H"
+                      includeMargin={false}
+                    />
+                  </div>
+
+                  {/* Waveform */}
+                  <div
+                    className="absolute z-20 pointer-events-none"
+                    style={{
+                      left: "27%",
+                      right: "12%",
+                      top: "54%",
+                      width: "230px",
+                      height: "42px",
+                      overflow: "hidden",
+                    }}
+                  >
+                    <Waveform analyser={analyserRef.current} active={ready} />
+                  </div>
+
+                  {/* Botones (02 - 01 - 03) */}
+                  <div
+                    className="absolute z-30 left-1/2 -translate-x-1/2 flex items-center gap-4"
+                    style={{ top: "60%" }}
+                  >
+                    {/* 02 — Siguiente (izquierda, pequeño) */}
+                    <button
+                      type="button"
+                      aria-label="Siguiente canción"
+                      className="w-12 h-12 flex items-center justify-center bg-transparent p-0 cursor-pointer"
+                    >
+                      <img
+                        src="/assets/TABLET/SVG/ICONOS_REPRODUCTOR-02.svg"
+                        alt="Siguiente canción"
+                        className="w-6 h-6"
+                        draggable={false}
+                      />
+                    </button>
+
+                    {/* 01 — Pausa (centro, grande y funcional) */}
+                    <button
+                      type="button"
+                      onClick={toggle}
+                      aria-label={isPlaying ? "Pausar" : "Reproducir"}
+                      aria-pressed={isPlaying}
+                      className="w-16 h-16 flex items-center justify-center bg-transparent p-0 cursor-pointer"
+                    >
+                      <img
+                        src="/assets/TABLET/SVG/ICONOS_REPRODUCTOR-01.svg"
+                        alt="Pausar"
+                        className="w-8 h-8"
+                        draggable={false}
+                      />
+                    </button>
+
+                    {/* 03 — Reiniciar (derecha, pequeño) */}
+                    <button
+                      type="button"
+                      aria-label="Reiniciar canción"
+                      className="w-12 h-12 flex items-center justify-center bg-transparent p-0 cursor-pointer"
+                    >
+                      <img
+                        src="/assets/TABLET/SVG/ICONOS_REPRODUCTOR-03.svg"
+                        alt="Reiniciar canción"
+                        className="w-6 h-6"
+                        draggable={false}
+                      />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Derecha: Texto + LogoIW */}
+                <div className="relative -ml-10 lg:-ml-12 xl:-ml-14 2xl:-ml-16 flex flex-col items-start">
+                  <img
+                    src="/assets/PANTALLA/TEXT/TEXTOS-02.svg"
+                    alt="Texto"
+                    className="block w-[min(46vw,620px)] h-auto"
+                    draggable={false}
+                  />
+                  <div className="mt-3 w-[min(46vw,620px)] flex justify-center">
+                    <LogoIW height={56} width={260} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ✅ Audio oculto para funcionalidad (no afecta diseño) */}
+      <audio
+        ref={audioRef}
+        src={audioUrl ?? undefined}
+        className="hidden"
         playsInline
         preload="auto"
-        poster="/assets/FONDO_PANTALLA.png"
-      />
-      <div className="absolute inset-0 bg-black/20 z-0 pointer-events-none" />
-      <img
-        src="/assets/TABLET/SVG/LOGOS_LENOVO.svg"
-        alt="Lenovo"
-        className="hidden md:block absolute right-0 top-10 h-28 z-30"
+        crossOrigin="anonymous"
       />
 
-      <div className="absolute top-6 w-full flex justify-center z-20">
-        <img
-          src="/assets/TABLET/SVG/LOGOS_INTEL+WINDOWS.svg"
-          alt="Intel + Windows 11"
-          className="h-12 md:h-18"
-        />
-      </div>
-
-      <div className="relative w-[90%] max-w-sm aspect-[9/16] mt-6 z-10">
-        <img
-          src="/assets/TABLET/IMG/REPRODUCTOR.png"
-          alt="Reproductor"
-          className="absolute inset-0 w-full h-full object-contain"
-        />
-
-        {!ready && (
-          <div
-            className="absolute text-center font-semibold leading-snug px-4"
-            style={{ top: "17%", left: "8%", right: "8%", fontSize: "18px" }}
-          >
-            <p>
-              ¡Tu GOAT está listo <br /> para hacer historia!
-            </p>
-          </div>
-        )}
-
-        {ready && (
-          <div
-            className="absolute flex items-center gap-2 text-center"
-            style={{ top: "13%", left: "50%", transform: "translateX(-50%)" }}
-          >
-            <QRCodeCanvas value={urlSurvey} size={80} marginSize={1} />
-            <div className="text-[11px] opacity-85">
-              Escanea el código y llévate un recuerdo de tu experiencia
-            </div>
-          </div>
-        )}
-
-        <div
-          className="absolute"
-          style={{
-            left: "12%",
-            right: "12%",
-            top: "56%",
-            height: "42px",
-            width: "263px",
-            marginLeft: "15px",
-          }}
-        >
-          <Waveform analyser={analyserRef.current} active={ready} />
-        </div>
-
-        <button
-          onClick={toggle}
-          className="absolute rounded-full shadow-lg transition active:scale-95 disabled:opacity-50"
-          style={{
-            top: "68%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-            width: "62px",
-            height: "62px",
-            background: "#6b95ff",
-          }}
-          disabled={!ready}
-          aria-label={isPlaying ? "Pausar" : "Reproducir"}
-        >
-          {isPlaying ? (
-            <div className="mx-auto w-4 h-4 flex gap-1">
-              <span className="inline-block w-[6px] h-4 bg-white" />
-              <span className="inline-block w-[6px] h-4 bg-white" />
-            </div>
-          ) : (
-            <div
-              style={{
-                margin: "0 auto",
-                width: 0,
-                height: 0,
-                borderTop: "10px solid transparent",
-                borderBottom: "10px solid transparent",
-                borderLeft: "16px solid white",
-              }}
-            />
-          )}
-        </button>
-
-        <div
-          className="absolute text-center md:text-sm leading-snug px-4"
-          style={{
-            left: "6%",
-            right: "6%",
-            bottom: "15%",
-            fontSize: "16px",
-            lineHeight: "20px",
-          }}
-        >
-          <p>
-            Creado con el poder de <br />{" "}
-            <span className="font-bold">Lenovo y Copilot+PC,</span> <br />
-            junto a la sincronización
-            <br />
-            <span className="font-bold">Smart Connect</span>.
-          </p>
-        </div>
-
-        <audio
-          ref={audioRef}
-          src={audioUrl ?? undefined}
-          className="hidden"
-          playsInline
-          preload="auto"
-          crossOrigin="anonymous"
-        />
-      </div>
-
+      {/* Botón volver */}
       <button
         onClick={onRestart}
         title="Volver al inicio"

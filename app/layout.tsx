@@ -24,8 +24,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             muted
             playsInline
             preload="auto"
-            poster="/assets/fondo_poster.jpg" // opcional
-          />
+            />
           {/* Scrim para legibilidad */}
           <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/20 to-black/60" />
         </div>

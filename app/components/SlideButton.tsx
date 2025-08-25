@@ -10,7 +10,7 @@ type SlideToStartProps = {
     selectedBg?: string | null;
 };
 
-export function SlideToStart({
+export default function SlideToStart({
     onComplete,
     disabled,
     texture,
