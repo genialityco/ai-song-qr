@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 import { useEffect, useState } from "react";
-import  LogoIW  from "../components/LogoIW";
+import LogoIW from "../components/LogoIW";
 export default function StartScreen({
   onNext,
 }: {
@@ -70,10 +70,15 @@ export default function StartScreen({
       </div>
 
       {/* ===== DESKTOP/TABLET ===== */}
-      <div className="hidden md:block h-full relative z-10">
-        <div className="grid grid-cols-2 items-stretch h-full gap-10 p-10 lg:p-20">
+      <div className="hidden md:block h-full relative z-10" style={{
+        transform: "translate(-90px, -30px)", // 👉 X = izq/der, Y = arriba/abajo
+      }}>
+        <div className="grid grid-cols-2 items-stretch h-full gap-10 p-10 lg:p-20" >
           {/* Izquierda: póster */}
-          <div className="flex items-center justify-center">
+          <div className="flex items-center justify-center"
+            style={{
+              transform: "translate(70px, 10px)", // 👉 mueve X (izq-der) y Y (arriba-abajo)
+            }}>
             <img
               src="/assets/PANTALLA/IMG/MARCO_INICIO.png"
               alt="Marco GOAT Desktop"
@@ -87,9 +92,15 @@ export default function StartScreen({
           </div>
 
           {/* Derecha: logos + textos + input */}
-          <div className="text-white grid grid-rows-[auto_1fr_auto]">
+          <div className="text-white grid grid-rows-[auto_1fr_auto]"
+            style={{
+              transform: "translate(-25px, 0px)", // 👉 mueve X (izq-der) y Y (arriba-abajo)
+            }}
+          >
             {/* Logos desktop (en flujo) */}
-            <div className="flex items-start" style={{ marginTop: LOGOS_OFFSET_Y_DESKTOP }}>
+            <div className="flex items-start" style={{ marginTop: LOGOS_OFFSET_Y_DESKTOP,
+              transform: "translate(40px, 0px)"
+             }}>
               <LogoIW height={LOGOS_HEIGHT_DESKTOP} />
             </div>
 

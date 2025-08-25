@@ -45,7 +45,7 @@ export default function PlayerScreen({
 
   // ✅ Estado listo si hay audio real
   const ready = !!audioUrl;
-
+  
   // URL encuesta para el QR
   const urlSurvey = ready
     ? `${BASE_URL}/survey?src=${encodeURIComponent(
@@ -154,25 +154,30 @@ export default function PlayerScreen({
     };
   }, []);
 
-  const MOBILE_LOGO_HEIGHT = 56;
+  const MOBILE_LOGO_HEIGHT = 60;
   const MOBILE_LOGO_WIDTH: number | undefined = undefined;
 
   // --- QR config MOBILE ---
   const QR_M_LEFT = "30%";
-  const QR_M_TOP = "15%";
+  const QR_M_TOP = "25%";
   const QR_M_SIZE = 58;
 
   // --- QR config DESKTOP ---
-  const QR_D_LEFT = "39%";
-  const QR_D_TOP = "16%";
-  const QR_D_SIZE = 50;
+  const QR_D_LEFT = "40%";
+  const QR_D_TOP = "24%";
+  const QR_D_SIZE = 40;
 
   return (
     <div className="w-full min-h-screen relative flex flex-col items-center justify-start text-white overflow-hidden">
-      {/* ======== MOBILE (PRE-READY) ======== */}
       {!ready && (
         <>
-          <div className="relative mt-4 mx-auto w-[min(84vw,340px)] md:hidden">
+          {/* ======== MOBILE (PRE-READY) ======== */}
+          <div
+            className="relative mx-auto w-[min(84vw,340px)] md:hidden"
+            style={{
+              transform: "translate(0px, 30px)", // 👉 mueve X (izq-der) y Y (arriba-abajo)
+            }}
+          >
             <div className="w-full flex justify-center mb-1">
               <LogoIW height={MOBILE_LOGO_HEIGHT} width={MOBILE_LOGO_WIDTH} />
             </div>
@@ -187,22 +192,22 @@ export default function PlayerScreen({
               <div className="absolute inset-0">
                 <div
                   className="
-                    absolute z-20 pointer-events-none
-                    left-1/2 -translate-x-1/2 top-[62%]
-                    w-[min(78%,220px)] h-[clamp(22px,6vh,36px)]
-                    overflow-hidden
-                  "
+          absolute z-20 pointer-events-none
+          left-1/2 -translate-x-1/2 top-[65%]
+          w-[min(78%,300px)] h-[clamp(22px,6vh,36px)]
+          overflow-hidden
+        "
                 >
                   <Waveform analyser={analyserRef.current} active={ready} />
                 </div>
                 <button
                   onClick={toggle}
                   className="
-                    absolute z-10 rounded-full shadow-lg transition
-                    active:scale-95 disabled:opacity-50
-                    left-1/2 -translate-x-1/2 top-[75%]
-                    w-[56px] h-[56px]
-                  "
+          absolute z-10 rounded-full shadow-lg transition
+          active:scale-95 disabled:opacity-50
+          left-1/2 -translate-x-1/2 top-[78%]
+          w-[56px] h-[56px]
+        "
                   style={{ background: "#6b95ff" }}
                   disabled={!ready}
                   aria-label={isPlaying ? "Pausar" : "Reproducir"}
@@ -236,8 +241,13 @@ export default function PlayerScreen({
           </div>
 
           {/* ===== DESKTOP (PRE-READY) ===== */}
-          <div className="hidden md:block">
-            <div className="relative mx-auto w-full max-w-[1500px] mt-6">
+          <div
+            className="hidden md:flex min-h-screen items-center justify-center relative"
+            style={{
+              transform: "translate(0px, 5px)", // 👉 mueve en X (izq-der) y Y (arriba-abajo)
+            }}
+          >
+            <div className="relative mx-auto w-full max-w-[1500px]">
               <div className="flex items-center justify-center gap-0">
                 {/* Izquierda */}
                 <div
@@ -245,7 +255,8 @@ export default function PlayerScreen({
                   style={{
                     width: "500px",
                     height: "500px",
-                    backgroundImage: "url('/assets/TABLET/IMG/MARCO_REPRODUCTOR.png')",
+                    backgroundImage:
+                      "url('/assets/TABLET/IMG/MARCO_REPRODUCTOR.png')",
                     backgroundRepeat: "no-repeat",
                     backgroundSize: "contain",
                     backgroundPosition: "center",
@@ -313,17 +324,28 @@ export default function PlayerScreen({
               </div>
             </div>
           </div>
+
+
         </>
       )}
-
       {/* ======== READY ======== */}
       {ready && (
         <>
           {/* MOBILE (READY) */}
-          <div className="md:hidden w-full flex justify-center">
+          <div
+            className="md:hidden w-full flex justify-center relative"
+            style={{
+              transform: "translate(0px, 20px)", // 👉 X = izquierda/derecha, Y = arriba/abajo
+            }}
+          >
             <div className="mt-2 w-[min(84vw,340px)]">
               {/* Logo */}
-              <div className="w-full flex justify-center mb-2">
+              <div
+                className="w-full flex justify-center mb-2 relative"
+                style={{
+                  transform: "translate(0px, 30px)", // 👉 mueve X (izq-der) y Y (arriba-abajo)
+                }}
+              >
                 <LogoIW height={MOBILE_LOGO_HEIGHT} width={MOBILE_LOGO_WIDTH} />
               </div>
 
@@ -359,13 +381,13 @@ export default function PlayerScreen({
                   {/* Waveform */}
                   <div
                     className="
-                      absolute z-20 pointer-events-none
-                      left-1/2 -translate-x-1/2 -translate-y-1
-                      top-[56%]
-                      w-[min(78%,220px)] h-[clamp(22px,6vh,36px)]
-                      overflow-hidden
-                      [&>canvas]:w-full [&>canvas]:h-full
-                    "
+            absolute z-20 pointer-events-none
+            left-1/2 -translate-x-1/2 -translate-y-1
+            top-[68%]
+            w-[min(78%,300px)] h-[clamp(22px,6vh,40px)]
+            overflow-hidden
+            [&>canvas]:w-full [&>canvas]:h-full
+          "
                   >
                     <Waveform analyser={analyserRef.current} active={ready} />
                   </div>
@@ -373,10 +395,10 @@ export default function PlayerScreen({
                   {/* Controles (orden 02 - 01 - 03) */}
                   <div
                     className="
-                      absolute z-30 left-1/2 -translate-x-1/2
-                      top-[60%]
-                      flex items-center gap-4
-                    "
+            absolute z-30 left-1/2 -translate-x-1/2
+            top-[73%]
+            flex items-center gap-4
+          "
                   >
                     {/* 02 — Siguiente (izquierda, pequeño) */}
                     <button
@@ -385,7 +407,7 @@ export default function PlayerScreen({
                       className="w-14 h-14 flex items-center justify-center bg-transparent p-0 cursor-pointer"
                     >
                       <img
-                        src="/assets/TABLET/SVG/ICONOS_REPRODUCTOR-02.svg"
+                        src="/assets/TABLET/SVG/ICONOS_REPRODUCTOR-03.svg"
                         alt="Siguiente canción"
                         className="w-7 h-7"
                         draggable={false}
@@ -415,7 +437,7 @@ export default function PlayerScreen({
                       className="w-14 h-14 flex items-center justify-center bg-transparent p-0 cursor-pointer"
                     >
                       <img
-                        src="/assets/TABLET/SVG/ICONOS_REPRODUCTOR-03.svg"
+                        src="/assets/TABLET/SVG/ICONOS_REPRODUCTOR-02.svg"
                         alt="Reiniciar canción"
                         className="w-7 h-7"
                         draggable={false}
@@ -431,9 +453,13 @@ export default function PlayerScreen({
                 alt="Texto"
                 className="block w-full h-auto mt-2 select-none"
                 draggable={false}
+                style={{
+                  transform: "translate(-5px, -30px)", // 👉 mueve X (izq-der) y Y (arriba-abajo)
+                }}
               />
             </div>
           </div>
+
 
           {/* DESKTOP (READY) */}
           <div className="hidden md:block">
@@ -474,10 +500,10 @@ export default function PlayerScreen({
                   <div
                     className="absolute z-20 pointer-events-none"
                     style={{
-                      left: "27%",
+                      left: "29%",
                       right: "12%",
-                      top: "54%",
-                      width: "230px",
+                      top: "66%",
+                      width: "210px",
                       height: "42px",
                       overflow: "hidden",
                     }}
@@ -488,7 +514,7 @@ export default function PlayerScreen({
                   {/* Botones (02 - 01 - 03) */}
                   <div
                     className="absolute z-30 left-1/2 -translate-x-1/2 flex items-center gap-4"
-                    style={{ top: "60%" }}
+                    style={{ top: "74%" }}
                   >
                     {/* 02 — Siguiente (izquierda, pequeño) */}
                     <button
@@ -497,7 +523,7 @@ export default function PlayerScreen({
                       className="w-12 h-12 flex items-center justify-center bg-transparent p-0 cursor-pointer"
                     >
                       <img
-                        src="/assets/TABLET/SVG/ICONOS_REPRODUCTOR-02.svg"
+                        src="/assets/TABLET/SVG/ICONOS_REPRODUCTOR-03.svg"
                         alt="Siguiente canción"
                         className="w-6 h-6"
                         draggable={false}
@@ -527,7 +553,7 @@ export default function PlayerScreen({
                       className="w-12 h-12 flex items-center justify-center bg-transparent p-0 cursor-pointer"
                     >
                       <img
-                        src="/assets/TABLET/SVG/ICONOS_REPRODUCTOR-03.svg"
+                        src="/assets/TABLET/SVG/ICONOS_REPRODUCTOR-02.svg"
                         alt="Reiniciar canción"
                         className="w-6 h-6"
                         draggable={false}
