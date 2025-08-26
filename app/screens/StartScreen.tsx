@@ -47,8 +47,9 @@ export default function StartScreen({
   return (
     <div className="w-full h-[100svh] relative overflow-hidden">
       {/* ===== MOBILE ===== */}
+      {/* ===== MOBILE ===== */}
       <div className="md:hidden relative h-full flex flex-col z-10">
-        {/* Logo ARRIBA DE LA PANTALLA (ajustable, sin deformar) */}
+        {/* Logo ARRIBA DE LA PANTALLA */}
         <div
           className="absolute left-1/2 z-30"
           style={{
@@ -59,15 +60,36 @@ export default function StartScreen({
           <LogoIW height={MOBILE_LOGO_HEIGHT} width={MOBILE_LOGO_WIDTH} />
         </div>
 
-        {/* Póster al centro */}
-        <div className="flex-1 relative flex items-center justify-center px-4 pt-14">
+        {/* Contenido central */}
+        <div className="flex-1 relative flex flex-col items-center justify-center px-4 pt-14 gap-6">
+          {/* Póster */}
           <img
             src="/assets/TABLET/IMG/MARCO_HOME_PANTALLA.png"
             alt="Marco GOAT Mobile"
-            className="max-w-[85vw] max-h-[85vh] object-contain drop-shadow-[0_10px_40px_rgba(0,0,0,0.45)]"
+            className="max-w-[85vw] max-h-[65vh] object-contain drop-shadow-[0_10px_40px_rgba(0,0,0,0.45)]"
           />
+
+          {/* Botón Play */}
+          <button
+            onClick={() => {
+              const defaults = [
+                "Gloria Futbolistica",
+                "Confianza Invencible",
+                "Instinto Goleador",
+              ];
+              const value =
+                desktopPrompt.trim() ||
+                defaults[Math.floor(Math.random() * defaults.length)];
+              onNext(value);
+            }}
+            className="bg-[url('/assets/TABLET/IMG/BOTON.png')] bg-no-repeat bg-center bg-contain transition w-full max-w-[320px] h-[56px] text-[#002060]"
+            style={{ fontSize: "22px", cursor: "pointer" }}
+          >
+            Play
+          </button>
         </div>
       </div>
+
 
       {/* ===== DESKTOP/TABLET ===== */}
       <div className="hidden md:block h-full relative z-10" style={{
@@ -98,9 +120,10 @@ export default function StartScreen({
             }}
           >
             {/* Logos desktop (en flujo) */}
-            <div className="flex items-start" style={{ marginTop: LOGOS_OFFSET_Y_DESKTOP,
+            <div className="flex items-start" style={{
+              marginTop: LOGOS_OFFSET_Y_DESKTOP,
               transform: "translate(40px, 0px)"
-             }}>
+            }}>
               <LogoIW height={LOGOS_HEIGHT_DESKTOP} />
             </div>
 

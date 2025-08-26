@@ -145,7 +145,7 @@ export default function GenreSelectionScreen({
             <div
               className="absolute"
               style={{
-                top: "50%",
+                top: "40%",
                 left: "50%",
                 transform: "translate(-50%, -200%) scale(1)",
                 width: "92%",
