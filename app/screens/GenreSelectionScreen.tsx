@@ -185,47 +185,62 @@ export default function GenreSelectionScreen({
         </div>
 
         {/* GRID (solo desktop) */}
-        <div className="relative z-10 w-full mx-auto max-w-4xl px-6">
-          <div className="mt-3 grid grid-cols-3 gap-x-5 gap-y-4 justify-items-center">
-            {CARDS.map((card, i) => {
-              const selected = style === card.label;
-              const bg = bgForIndex(i);
-              return (
-                <button
-                  key={card.key}
-                  onClick={() => setStyle(card.label)}
-                  className={[
-                    "relative overflow-hidden md:rounded-r-[22px] md:rounded-l-none",
-                    "shadow-[0_8px_20px_rgba(0,0,0,0.35)] transition transform text-center",
-                    "w-[82%] max-w-[260px] h-[92px]",
-                    selected ? "ring-2 ring-white/70 md:scale-[1.01]" : "hover:md:scale-[1.01]",
-                  ].join(" ")}
-                  style={{
-                    backgroundImage: `url('${bg}')`,
-                    backgroundSize: "cover",
-                    backgroundPosition: "center",
-                  }}
-                >
-                  <div className="absolute inset-0 bg-black/20" />
-                  {/* Texto centrado (desktop) */}
-                  <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-1 px-2 text-white text-center">
-                    <div className="font-semibold text-[13px] drop-shadow">{card.label}</div>
-                    <span
-                      className={[
-                        "inline-block leading-none",
-                        "text-[12px] px-2 py-1 rounded-md border",
-                        selected
-                          ? "bg-white text-black border-white"
-                          : "bg-transparent text-white border-white/70 hover:bg-white/10",
-                      ].join(" ")}
+        <div className="relative z-10 w-full mx-auto max-w-4xl px-6"><div className="relative z-10 w-full mx-auto max-w-4xl px-6">
+          <div className="relative z-10 w-full mx-auto max-w-4xl px-6">
+            <div className="mt-3 grid grid-cols-3 gap-x-5 gap-y-4 justify-items-center">
+              {CARDS.map((card, i) => {
+                const selected = style === card.label;
+                const bg = bgForIndex(i);
+                return (
+                  <button
+                    key={card.key}
+                    onClick={() => setStyle(card.label)}
+                    className={[
+                      "relative overflow-hidden md:rounded-r-[22px] md:rounded-l-none",
+                      "shadow-[0_8px_20px_rgba(0,0,0,0.35)] transition transform text-center",
+                      "w-[82%] max-w-[260px] h-[92px]",
+                      selected ? "ring-2 ring-white/70 md:scale-[1.01]" : "hover:md:scale-[1.01]",
+                    ].join(" ")}
+                    style={{
+                      backgroundImage: `url('${bg}')`,
+                      backgroundSize: "cover",
+                      backgroundPosition: "center",
+                    }}
+                  >
+                    <div className="absolute inset-0 bg-black/20" />
+                    {/* Contenedor para el label y el botón "Seleccionar" */}
+                    <div
+                      className="absolute z-10 flex flex-col items-center justify-center gap-1 px-2 text-white text-center"
+                      style={{
+                        transform: "translate(70px, -20px)", // Mueve tanto el label como el botón
+                      }}
                     >
-                      Seleccionar
-                    </span>
-                  </div>
-                </button>
-              );
-            })}
+                      {/* Label */}
+                      <div className="font-semibold text-[13px] drop-shadow">
+                        {card.label}
+                      </div>
+                      {/* Botón "Seleccionar" */}
+                      <span
+                        className={[
+                          "inline-block leading-none",
+                          "text-[12px] px-2 py-1 rounded-md border",
+                          selected
+                            ? "bg-white text-black border-white"
+                            : "bg-transparent text-white border-white/70 hover:bg-white/10",
+                        ].join(" ")}
+                      >
+                        Seleccionar
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+            {error && <div className="mt-2 text-center text-red-300 text-sm">{error}</div>}
           </div>
+          {error && <div className="mt-2 text-center text-red-300 text-sm">{error}</div>}
+        </div>
+
           {error && <div className="mt-2 text-center text-red-300 text-sm">{error}</div>}
         </div>
 
@@ -266,6 +281,6 @@ export default function GenreSelectionScreen({
 
 
       </div>
-    </div>
+    </div >
   );
 }
