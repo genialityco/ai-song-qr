@@ -253,8 +253,8 @@ export default function PlayerScreen({
                 <div
                   className="relative shrink-0 -mr-6"
                   style={{
-                    width: "500px",
-                    height: "500px",
+                    width: "600px",
+                    height: "600px",
                     backgroundImage:
                       "url('/assets/TABLET/IMG/MARCO_REPRODUCTOR.png')",
                     backgroundRepeat: "no-repeat",
@@ -267,8 +267,8 @@ export default function PlayerScreen({
                     style={{
                       left: "27%",
                       right: "12%",
-                      top: "60%",
-                      width: "230px",
+                      top: "65%",
+                      width: "275px",
                       height: "42px",
                       overflow: "hidden",
                     }}
@@ -459,18 +459,16 @@ export default function PlayerScreen({
               />
             </div>
           </div>
-
-
           {/* DESKTOP (READY) */}
           <div className="hidden md:block">
-            <div className="relative mx-auto w-full max-w-[1500px] mt-6">
+            <div className="relative mx-auto w-full max-w-[2000px] mb-">
               <div className="flex items-center justify-center gap-0">
                 {/* Izquierda: Teléfono */}
                 <div
-                  className="relative shrink-0 -mr-6 min-w-[500px] min-h-[500px]"
+                  className="relative shrink-0 -mr-6 min-w-[600px] min-h-[600px]"
                   style={{
-                    width: "500px",
-                    height: "500px",
+                    width: "650px",
+                    height: "650px",
                     backgroundImage: "url('/assets/TABLET/IMG/MARCO_REPRODUCTOR_QR.png')",
                     backgroundRepeat: "no-repeat",
                     backgroundSize: "contain",
@@ -488,7 +486,7 @@ export default function PlayerScreen({
                   >
                     <QRCodeCanvas
                       value={urlSurvey || BASE_URL}
-                      size={QR_D_SIZE}
+                      size={QR_D_SIZE}  // Aumenta este valor si es necesario
                       bgColor="#ffffff"
                       fgColor="#000000"
                       level="L"
@@ -503,7 +501,7 @@ export default function PlayerScreen({
                       left: "29%",
                       right: "12%",
                       top: "66%",
-                      width: "210px",
+                      width: "275px",
                       height: "42px",
                       overflow: "hidden",
                     }}
@@ -520,12 +518,12 @@ export default function PlayerScreen({
                     <button
                       type="button"
                       aria-label="Siguiente canción"
-                      className="w-12 h-12 flex items-center justify-center bg-transparent p-0 cursor-pointer"
+                      className="w-16 h-16 flex items-center justify-center bg-transparent p-0 cursor-pointer"
                     >
                       <img
                         src="/assets/TABLET/SVG/ICONOS_REPRODUCTOR-03.svg"
                         alt="Siguiente canción"
-                        className="w-6 h-6"
+                        className="w-8 h-8"
                         draggable={false}
                       />
                     </button>
@@ -536,12 +534,12 @@ export default function PlayerScreen({
                       onClick={toggle}
                       aria-label={isPlaying ? "Pausar" : "Reproducir"}
                       aria-pressed={isPlaying}
-                      className="w-16 h-16 flex items-center justify-center bg-transparent p-0 cursor-pointer"
+                      className="w-20 h-20 flex items-center justify-center bg-transparent p-0 cursor-pointer"
                     >
                       <img
                         src="/assets/TABLET/SVG/ICONOS_REPRODUCTOR-01.svg"
                         alt="Pausar"
-                        className="w-8 h-8"
+                        className="w-10 h-10"
                         draggable={false}
                       />
                     </button>
@@ -550,12 +548,12 @@ export default function PlayerScreen({
                     <button
                       type="button"
                       aria-label="Reiniciar canción"
-                      className="w-12 h-12 flex items-center justify-center bg-transparent p-0 cursor-pointer"
+                      className="w-16 h-16 flex items-center justify-center bg-transparent p-0 cursor-pointer"
                     >
                       <img
                         src="/assets/TABLET/SVG/ICONOS_REPRODUCTOR-02.svg"
                         alt="Reiniciar canción"
-                        className="w-6 h-6"
+                        className="w-8 h-8"
                         draggable={false}
                       />
                     </button>
@@ -563,14 +561,14 @@ export default function PlayerScreen({
                 </div>
 
                 {/* Derecha: Texto + LogoIW */}
-                <div className="relative -ml-10 lg:-ml-12 xl:-ml-14 2xl:-ml-16 flex flex-col items-start">
+                <div className="relative -ml-14 lg:-ml-16 xl:-ml-18 2xl:-ml-20 flex flex-col items-start">
                   <img
                     src="/assets/PANTALLA/TEXT/TEXTOS-02.svg"
                     alt="Texto"
-                    className="block w-[min(46vw,620px)] h-auto"
+                    className="block w-[min(46vw,800px)] h-auto"
                     draggable={false}
                   />
-                  <div className="mt-3 w-[min(46vw,620px)] flex justify-center">
+                  <div className="mt-3 w-[min(46vw,800px)] flex justify-center">
                     <LogoIW height={56} width={260} />
                   </div>
                 </div>
