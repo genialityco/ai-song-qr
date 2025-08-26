@@ -45,7 +45,7 @@ export default function PlayerScreen({
 
   // ✅ Estado listo si hay audio real
   const ready = !!audioUrl;
-  
+
   // URL encuesta para el QR
   const urlSurvey = ready
     ? `${BASE_URL}/survey?src=${encodeURIComponent(
@@ -160,12 +160,12 @@ export default function PlayerScreen({
   // --- QR config MOBILE ---
   const QR_M_LEFT = "30%";
   const QR_M_TOP = "25%";
-  const QR_M_SIZE = 58;
+  const QR_M_SIZE = 70;
 
   // --- QR config DESKTOP ---
-  const QR_D_LEFT = "40%";
+  const QR_D_LEFT = "39%";
   const QR_D_TOP = "24%";
-  const QR_D_SIZE = 40;
+  const QR_D_SIZE = 65;
 
   return (
     <div className="w-full min-h-screen relative flex flex-col items-center justify-start text-white overflow-hidden">
@@ -373,7 +373,7 @@ export default function PlayerScreen({
                       size={QR_M_SIZE}
                       bgColor="#ffffff"
                       fgColor="#000000"
-                      level="H"
+                      level="L"
                       includeMargin={false}
                     />
                   </div>
@@ -491,7 +491,7 @@ export default function PlayerScreen({
                       size={QR_D_SIZE}
                       bgColor="#ffffff"
                       fgColor="#000000"
-                      level="H"
+                      level="L"
                       includeMargin={false}
                     />
                   </div>
