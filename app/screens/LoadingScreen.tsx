@@ -109,6 +109,49 @@ type PlayState =
   | "ended"
   | "error";
 
+
+function MobileAutoCarousel({ intervalMs = 5000 }: { intervalMs?: number }) {
+  const [idx, setIdx] = useState(0);
+
+  useEffect(() => {
+    const id = setInterval(() => setIdx((i) => (i + 1) % 2), intervalMs);
+    return () => clearInterval(id);
+  }, [intervalMs]);
+
+  const images = [
+    "/assets/TABLET/IMG/CAJA_TEXTO_CARGA_01.png",
+    "/assets/TABLET/IMG/CAJA_TEXTO_CARGA_02.png",
+  ];
+
+  return (
+    <div
+      className="
+      block lg:hidden
+      mx-auto
+      w-[min(92vw,28rem)]
+      h-[clamp(200px,34vh,300px)]
+      relative overflow-hidden
+    "
+    >
+      {images.map((src, i) => (
+        <img
+          key={i}
+          src={src}
+          alt={i === 0 ? 'Carga 1' : 'Carga 2'}
+          className={[
+            "absolute inset-0 w-full h-full object-contain",
+            "transition-opacity duration-700 ease-out",
+            idx === i ? "opacity-100" : "opacity-0",
+          ].join(" ")}
+          draggable={false}
+          loading="eager"
+        />
+      ))}
+    </div>
+  );
+
+}
+
 export default function LoadingScreen({
   status,
   streamUrl,
@@ -251,13 +294,13 @@ export default function LoadingScreen({
 
   return (
     <div className="w-full h-[100svh] relative text-white flex flex-col overflow-hidden">
-      {/* Header (ligeramente más compacto) */}
-      <header className="pt-3 md:pt-8 relative z-10">
+      <header className="hidden lg:block lg:pt-8 relative z-10">
         <div className="flex justify-center">
           <img
             src="/assets/TABLET/SVG/LOGOS-WIN+INTEL.png"
             alt="Intel + Windows 11"
-            className="h-10 md:h-16 select-none pointer-events-none"
+            className="h-16 xl:h-20 select-none pointer-events-none"
+            draggable={false}
           />
         </div>
       </header>
@@ -301,25 +344,25 @@ export default function LoadingScreen({
           {/* Píldora "Cargando música…" */}
           <div className="mt-3 w-full max-w-[22rem] md:max-w-md rounded-2xl bg-black/90 border border-white/20 px-5 py-3 text-center shadow-[0_10px_30px_rgba(0,0,0,0.4)]">
             <span className="text-sm md:text-base font-semibold tracking-wide">
-              Cargando música…
+              Generando música…
             </span>
           </div>
 
           {/* Imagen inferior con límites para evitar scroll en mobile */}
           <div className="mt-3 w-full flex items-center justify-center">
-            {/* Móvil / tablets pequeñas */}
-            <img
-              src="/assets/PANTALLA/IMG/CAJA_TEXTO_PANTALLA.png"
-              alt="Caja de texto"
-              className="block md:hidden w-full max-w-[22rem] max-h-44 object-contain"
-            />
-            {/* Web / desktop */}
+            {/* < 1024px: carrusel auto */}
+            <MobileAutoCarousel />
+
+            {/* ≥ 1024px: imagen desktop */}
             <img
               src="/assets/PANTALLA/IMG/CUADRO-TEXTOS.png"
               alt="Cuadro de textos"
-              className="hidden md:block w-full max-w-2xl"
+              className="hidden lg:block w-full max-w-2xl"
+              draggable={false}
             />
           </div>
+
+
         </div>
 
         {/* TARJETA INFORMATIVA (streaming) */}
