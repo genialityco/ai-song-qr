@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 /* --------------------------- SlideToStart --------------------------- */
 import { useCallback, useEffect, useRef, useState } from "react";
 

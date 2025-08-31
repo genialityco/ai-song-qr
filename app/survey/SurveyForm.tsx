@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
 import { useState } from "react";
@@ -36,10 +37,10 @@ export default function SurveyForm({ onSuccess, onSubmitStart, onSubmitEnd }: Su
         correo: validateCorreo,
         empresa: validateEmpresa,
         cargo: validateCargo,
-        createdAt: function (v: string): string | undefined {
+        createdAt: function (_v: string): string | undefined {
             throw new Error("Function not implemented.");
         },
-        id: function (v: string): string | undefined {
+        id: function (_v: string): string | undefined {
             throw new Error("Function not implemented.");
         }
     };
