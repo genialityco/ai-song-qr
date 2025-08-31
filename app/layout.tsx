@@ -7,47 +7,76 @@ export const metadata: Metadata = {
   description: "Genera música con tu GOAT y comparte con QR",
 };
 
-const LENOVO_OFFSET_TOP = "50px";               // distancia desde arriba (ej: "0px", "8px", "24px")
-const LENOVO_HEIGHT = "clamp(96px, 18vh, 100px)";
+// WINDOWS + INTEL (solo mobile/tablet; ocúltalo con lg:hidden en el <img>)
+export const WI_POS =
+  "fixed z-50 pointer-events-none select-none left-1/2 -translate-x-1/2 top-[max(env(safe-area-inset-top),clamp(16px,7svh,56px))]  "; // centrado horizontalmente, y con safe-area en el top
+export const WI_SIZE =
+  "h-auto w-[clamp(266px,100vmin,400px)]"; // escala con el lado corto del viewport
+
+export const LENOVO_POS =
+  "fixed z-50 pointer-events-none select-none " +
+  "right-[max(env(safe-area-inset-right))] " +
+  "top-[max(env(safe-area-inset-top),clamp(12px,5vh,28px)+30px)] ";
+
+
+export const LENOVO_SIZE =
+  "w-auto h-[clamp(150px,45vmin,100px)] lg:h-[clamp(30px,20vmin,150px)]";
+
+
+
+
+
+
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es">
       <body className="min-h-screen bg-black">
-        {/* Capa de video global */}
-        <div className="fixed inset-0 -z-10 pointer-events-none">
+        <>
+          {/* VIDEO MOBILE/TABLET */}
           <video
-            className="absolute inset-0 w-full h-full object-cover"
-            src="assets/FONDO_TABLET_MUSIC.mp4"
+            className="fixed inset-0 z-0 h-full w-full object-cover pointer-events-none select-none block lg:hidden"
+            src="/assets/GOATMUSIC/Layout/FONDO_TABLET.mp4"
             autoPlay
-            loop
             muted
+            loop
             playsInline
             preload="auto"
-            />
-          {/* Scrim para legibilidad */}
-          <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/20 to-black/60" />
-        </div>
+          />
 
-        {/* Logo Lenovo fijo (visible en todas las páginas) */}
-        <img
-          src="/assets/TABLET/SVG/LOGOS_LENOVO.svg"
-          alt="Lenovo"
-          className="fixed z-30 drop-shadow-[0_8px_24px_rgba(0,0,0,0.45)] pointer-events-none select-none"
-          style={{
-            // Pegado TOTAL al borde derecho respetando notch/safe-area
-            right: "max(env(safe-area-inset-right), 0px)",
-            // Ajusta la altura vertical aquí (sumada al safe-area top)
-            top: `calc(max(env(safe-area-inset-top), 0px) + ${LENOVO_OFFSET_TOP})`,
-            // Controla el tamaño aquí
-            height: LENOVO_HEIGHT,
-            // Si tu SVG tiene padding interno y ves 1–2px de “aire”,
-            // descomenta la línea de abajo para empujarlo un pelín a la derecha:
-            // marginRight: "-2px",
-          }}
-        />
+          {/* VIDEO SOLO PC */}
+          <video
+            className="fixed inset-0 z-0 h-full w-full object-cover pointer-events-none select-none hidden lg:block transform scale-100"
+            src="/assets/GOATMUSIC/Layout/FONDO_PANTALLA.mp4"
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="auto"
+          />
 
-        {/* Contenido de cada página encima del video */}
+
+          {/* (Opcional) velo para legibilidad */}
+          {/* <div className="fixed inset-0 z-[1] pointer-events-none bg-black/20" /> */}
+
+          {/* LOGO LENOVO — visible en todas las pantallas */}
+          <img
+            src="/assets/GOATMUSIC/Layout/LOGOS_LENOVO.svg"
+            alt="Lenovo"
+            className={`${LENOVO_POS} ${LENOVO_SIZE}`}
+            draggable={false}
+          />
+
+          {/* LOGO WINDOWS + INTEL — SOLO mobile/tablet */}
+          <img
+            src="/assets/GOATMUSIC/Layout/LOGOS_WIN_INTEL.png"
+            alt="Windows + Intel"
+            className={`${WI_POS} ${WI_SIZE} block lg:hidden`}
+            draggable={false}
+          />
+
+
+        </>
         <main className="relative z-10 min-h-screen">{children}</main>
       </body>
     </html>
