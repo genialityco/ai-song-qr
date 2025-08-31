@@ -1,7 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useEffect, useRef, useState } from "react";
 
+/** ============================ Waveform ============================ */
 /** Waveform con placeholder cuando no hay analyser */
 function Waveform({
   analyser,
@@ -95,9 +98,71 @@ function Waveform({
     return () => window.removeEventListener("resize", resize);
   }, []);
 
-  return <canvas ref={canvasRef} className="w-full h-full" />;
+  return (
+    <canvas
+      ref={canvasRef}
+      className="w-full h-full [image-rendering:pixelated]"
+    />
+  );
 }
 
+/** ======================= MobileAutoCarousel ======================= */
+/** Carrusel con crossfade + zoom + slide, pensado para portrait */
+function MobileAutoCarousel({
+  intervalMs = 6000,
+  images = [
+    "/assets/GOATMUSIC/LoadingScreen/CAJA_TEXTO_CARGA_02.png",
+    "/assets/GOATMUSIC/LoadingScreen/CAJA_TEXTO_CARGA_01.png",
+  ],
+}: {
+  intervalMs?: number;
+  images?: string[];
+}) {
+  const [idx, setIdx] = useState(0);
+
+  useEffect(() => {
+    const id = setInterval(
+      () => setIdx((i) => (i + 1) % images.length),
+      intervalMs
+    );
+    return () => clearInterval(id);
+  }, [intervalMs, images.length]);
+
+  return (
+    <div
+      className={[
+        "block lg:hidden relative overflow-hidden rounded-xl",
+        "w-[min(92vw,34rem)]",
+        "h-[clamp(220px,28vh,360px)]",
+      ].join(" ")}
+      style={{ marginTop: "50px"}}
+    >
+      {images.map((src, i) => {
+        const active = idx === i;
+        return (
+          <img
+            key={i}
+            src={src}
+            alt={`Carga ${i + 1}`}
+            draggable={false}
+            loading="eager"
+            className={[
+              "absolute inset-0 w-full h-full object-contain",
+              "transition-[opacity,transform] duration-800 ease-out will-change-transform",
+              active
+                ? "opacity-100 scale-[1.0] translate-y-0"
+                : "opacity-0 scale-[1.03] translate-y-[6px]",
+            ].join(" ")}
+            style={{ boxShadow: "0 20px 40px rgba(0,0,0,0.4)" }}
+          />
+        );
+      })}
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/10" />
+    </div>
+  );
+}
+
+/** =========================== LoadingScreen =========================== */
 type PlayState =
   | "idle"
   | "loading"
@@ -107,53 +172,8 @@ type PlayState =
   | "ended"
   | "error";
 
-
-function MobileAutoCarousel({ intervalMs = 5000 }: { intervalMs?: number }) {
-  const [idx, setIdx] = useState(0);
-
-  useEffect(() => {
-    const id = setInterval(() => setIdx((i) => (i + 1) % 2), intervalMs);
-    return () => clearInterval(id);
-  }, [intervalMs]);
-
-  const images = [
-    "/assets/GOATMUSIC/LoadingScreen/CAJA_TEXTO_CARGA_02.png",
-    "/assets/GOATMUSIC/LoadingScreen/CAJA_TEXTO_CARGA_01.png",
-  ];
-
-  return (
-    <div
-      className="
-      block lg:hidden
-      mx-auto
-      w-[min(92vw,28rem)]
-      h-[clamp(200px,34vh,300px)]
-      relative overflow-hidden
-    "
-    >
-      {images.map((src, i) => (
-        <img
-          key={i}
-          src={src}
-          alt={i === 0 ? 'Carga 1' : 'Carga 2'}
-          className={[
-            "absolute inset-0 w-full h-full object-contain",
-            "transition-opacity duration-700 ease-out",
-            idx === i ? "opacity-100" : "opacity-0",
-          ].join(" ")}
-          draggable={false}
-          loading="eager"
-        />
-      ))}
-    </div>
-  );
-
-}
-
 export default function LoadingScreen({
-  status,
   streamUrl,
-  onCancel,
   onAutoProceed,
   autoProceedMs = 20000,
 }: {
@@ -230,7 +250,7 @@ export default function LoadingScreen({
         audioCtxRef.current = new AC();
       }
       if (audioCtxRef.current.state === "suspended") {
-        await audioCtxRef.current.resume().catch(() => { });
+        await audioCtxRef.current.resume().catch(() => {});
       }
       if (!sourceRef.current || !analyserRef.current) {
         const ctx = audioCtxRef.current!;
@@ -264,7 +284,7 @@ export default function LoadingScreen({
         sourceRef.current?.disconnect();
         analyserRef.current?.disconnect();
         audioCtxRef.current?.close();
-      } catch { }
+      } catch {}
       sourceRef.current = null;
       analyserRef.current = null;
       audioCtxRef.current = null;
@@ -292,7 +312,8 @@ export default function LoadingScreen({
 
   return (
     <div className="w-full h-[100svh] relative text-white flex flex-col overflow-hidden">
-      <header className="hidden lg:block lg:pt-8 relative z-10">
+      {/* Header desktop opcional */}
+      <header className="hidden lg:block lg:pt-6 relative z-10">
         <div className="flex justify-center">
           <img
             src="/assets/TABLET/SVG/LOGOS-WIN+INTEL.png"
@@ -303,17 +324,17 @@ export default function LoadingScreen({
         </div>
       </header>
 
-      {/* Desplazamos TODO el contenido principal hacia arriba en mobile */}
-      <main className="flex-1 flex flex-col items-center justify-center px-4 md:px-8 relative z-10 overflow-hidden -mt-8 md:mt-0">
-        {/* BLOQUE LOADER + TEXTO */}
+      {/* Contenido principal centrado y compacto para portrait */}
+      <main className="flex-1 flex flex-col items-center justify-center px-4 md:px-8 relative z-10 overflow-hidden -mt-4 md:mt-0">
+        {/* Loader + texto */}
         <div className="mt-2 md:mt-4 mb-2 md:mb-4 flex flex-col items-center w-full">
-          {/* Spinner más grande en mobile */}
+          {/* Spinner */}
           <svg
-            className="w-28 h-28 md:w-32 md:h-32"
             viewBox="0 0 100 100"
             fill="none"
             aria-label="Cargando"
             role="img"
+            style={{ width: "140px", height: "140px" }}
           >
             <circle
               cx="50"
@@ -339,31 +360,26 @@ export default function LoadingScreen({
             </path>
           </svg>
 
-          {/* Píldora "Cargando música…" */}
+          {/* Píldora de estado */}
           <div className="mt-3 w-full max-w-[22rem] md:max-w-md rounded-2xl bg-black/90 border border-white/20 px-5 py-3 text-center shadow-[0_10px_30px_rgba(0,0,0,0.4)]">
-            <span className="text-sm md:text-base font-semibold tracking-wide">
+            <span className="text-sm md:text-base font-semibold tracking-wide" style={{fontSize: "30px"}}>
               Generando música…
             </span>
           </div>
 
-          {/* Imagen inferior con límites para evitar scroll en mobile */}
+          {/* Imagen/carrusel */}
           <div className="mt-3 w-full flex items-center justify-center">
-            {/* < 1024px: carrusel auto */}
             <MobileAutoCarousel />
-
-            {/* ≥ 1024px: imagen desktop */}
             <img
               src="/assets/PANTALLA/IMG/CUADRO-TEXTOS.png"
               alt="Cuadro de textos"
-              className="hidden lg:block w-full max-w-2xl"
+              className="hidden lg:block w-full max-w-[44rem]"
               draggable={false}
             />
           </div>
-
-
         </div>
 
-        {/* TARJETA INFORMATIVA (streaming) */}
+        {/* Tarjeta de streaming */}
         {hasStream && (
           <div className="w-full max-w-[22rem] md:max-w-3xl mt-4 md:mt-6">
             <div className="relative h-14 md:h-16 w-full rounded-xl bg-white/10 border border-white/20 overflow-hidden">
@@ -377,7 +393,9 @@ export default function LoadingScreen({
                     Activar audio ▶
                   </button>
                 ) : (
-                  <span className="text-[11px] md:text-xs opacity-80 truncate">{pill}</span>
+                  <span className="text-[11px] md:text-xs opacity-80 truncate">
+                    {pill}
+                  </span>
                 )}
                 <div className="flex-1 h-7 md:h-8">
                   <Waveform
@@ -399,20 +417,17 @@ export default function LoadingScreen({
           </div>
         )}
 
-        {/* Botón Cancelar comentado */}
-        {/*
-      <div className="mt-8 pb-8">
-        <button
-          onClick={onCancel}
-          className="px-6 py-2 rounded bg-white/10 hover:bg-white/20 transition"
-        >
-          Cancelar
-        </button>
-      </div>
-      */}
+        {/* Botón cancelar (opcional)
+        <div className="mt-8 pb-8">
+          <button
+            onClick={onCancel}
+            className="px-6 py-2 rounded bg-white/10 hover:bg-white/20 transition"
+          >
+            Cancelar
+          </button>
+        </div>
+        */}
       </main>
     </div>
   );
-
-
-};
+}

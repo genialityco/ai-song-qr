@@ -10,7 +10,7 @@ import PlayerScreen from "./screens/PlayerScreen";
 type Step = "start" | "genre" | "loading" | "player" | "survey";
 
 export default function Page() {
-  const [step, setStep] = useState<Step>("loading");
+  const [step, setStep] = useState<Step>("player");
 
   // Datos del flujo
   const [themePrompt, setThemePrompt] = useState<string>("");

@@ -5,9 +5,6 @@ import { useEffect, useRef, useState } from "react";
 
 /* =========================================================
    Hook: Escala + desplazamiento por WIDTH (solo clases Tailwind)
-   - w < 375 => scale-[0.5] + translate-y-[200px] (como pediste)
-   - Puedes editar fácilmente los tramos
-   - Incluye safelist de escalas y translate-y arbitrarios (Tailwind)
    ========================================================= */
 function useScaleAndShiftByWidth() {
   const [cls, setCls] = useState<{ scale: string; ty: string }>({
@@ -63,9 +60,8 @@ function useScaleAndShiftByWidth() {
     };
   }, []);
 
-  // Safelist para evitar purga de Tailwind (no se ejecuta nada, solo referencia)
+  // Safelist para evitar purga de Tailwind
   const __TW_SAFELIST__ = [
-    // escalas comunes + algunas extra (incluye scale-[0.1] como pediste)
     "scale-[0.1]",
     "scale-[0.2]",
     "scale-[0.3]",
@@ -81,7 +77,6 @@ function useScaleAndShiftByWidth() {
     "scale-[1.1]",
     "scale-[1.2]",
     "scale-[1.3]",
-    // offsets Y que usamos en los tramos (puedes añadir más)
     "translate-y-[0px]",
     "translate-y-[24px]",
     "translate-y-[40px]",
@@ -97,19 +92,14 @@ function useScaleAndShiftByWidth() {
 }
 
 /* =========================================================
-   Componente principal
+   Componente SOLO VERTICAL (portrait)
    ========================================================= */
 export default function StartScreen({
   onNext,
 }: {
   onNext: (promptFromDesktop?: string) => void;
 }) {
-  const [desktopPrompt, setDesktopPrompt] = useState("");
-
-  // ===== Desktop: tamaño del marco proporcional al lado corto =====
-  const FRAME_W = "w-[clamp(360px,26vmin,640px)]";
-  const FRAME_TX = "translate-x-[0px]";
-  const FRAME_TY = "translate-y-[0px]";
+  const [prompt, setPrompt] = useState("");
 
   // Bloquear scroll del body
   useEffect(() => {
@@ -129,154 +119,86 @@ export default function StartScreen({
     };
   }, []);
 
-  const handlePlay = () => onNext(desktopPrompt);
-
-  // Mobile/Tablet: obtenemos clases Tailwind de scale + translate-y según WIDTH
   const { scale, ty } = useScaleAndShiftByWidth();
 
   return (
-    <>
-      {/* ======== DESKTOP (≥ 1024px) ======== */}
-      <section className="hidden lg:grid min-h-screen w-full grid-cols-2 items-center translate-x-[-40px]">
-        <div className="h-full flex items-center justify-end pr-[min(6vw,60px)]">
+    // Visible solo en vertical (portrait); oculto en landscape
+    <section className="block landscape:hidden min-h-[100svh] w-full flex items-center justify-center px-5 py-6">
+      {/* Wrapper: ancho proporcional + transform solo con Tailwind */}
+      <div
+        className={[
+          "mx-auto flex flex-col items-center gap-5",
+          "transform-gpu origin-top",
+          "w-[clamp(320px,92vmin,520px)]",
+          scale, // scale-[...] según WIDTH
+          ty, // translate-y-[...] según WIDTH
+        ].join(" ")}
+      >
+        {/* Fila 1: Imagen */}
+        <div className="relative w-full flex items-center justify-center">
           <img
-            src="/assets/GOATMUSIC/StartScreen/DESKTOP/MARCO_INICIO.png"
-            alt="Marco inicio"
+            src="/assets/GOATMUSIC/StartScreen/MOBILE/MARCO_HOME_PANTALLA.png"
+            alt="Marco home móvil"
             draggable={false}
-            className={[
-              "select-none pointer-events-none object-contain",
-              "transform-gpu",
-              FRAME_W,
-              FRAME_TX,
-              FRAME_TY,
-            ].join(" ")}
+            className="block w-full h-auto select-none pointer-events-none"
           />
         </div>
 
-        {/* Columna derecha */}
-        <div className="h-full flex items-center justify-center">
-          <div className="w-full max-w-[700px] pl-[min(2vw,24px)] pr-[min(6vw,60px)]">
-            {/* Logos */}
-            <div className="mb-8 items-center translate-y-[40px]">
-              <img
-                src="/assets/GOATMUSIC/StartScreen/DESKTOP/LOGOS_WIN_INTEL.png"
-                alt="Windows 11 + Intel"
-                draggable={false}
-                className="h-[clamp(34px,4vw,56px)] translate-x-[60px] scale-[1.2] w-auto select-none pointer-events-none drop-shadow-[0_8px_24px_rgba(0,0,0,0.35)]"
-              />
-              <img
-                src="/assets/GOATMUSIC/StartScreen/DESKTOP/TU_GOAT.svg"
-                alt="¿A qué suena tu GOAT?"
-                draggable={false}
-                className="w-full max-w-[640px] scale-[0.9] h-auto select-none pointer-events-none"
-              />
-            </div>
-
-            {/* Input */}
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                handlePlay();
-              }}
-              className="mb-6"
-            >
-              <input
-                type="text"
-                value={desktopPrompt}
-                onChange={(e) => setDesktopPrompt(e.target.value)}
-                placeholder="Escríbelo ahora y ponte los audífonos…"
-                className={[
-                  "w-full h-[96px] rounded-full",
-                  "px-6 text-[16px]",
-                  "bg-white/95 text-slate-900",
-                  "shadow-[0_10px_20px_rgba(0,0,0,0.25)]",
-                  "ring-1 ring-white/40 focus:outline-none focus:ring-2 focus:ring-white",
-                ].join(" ")}
-              />
-            </form>
-
-            {/* Botón Play */}
-            <button
-              type="button"
-              onClick={handlePlay}
-              className={[
-                "relative isolate w-[min(260px,48%)] h-[60px] rounded-full",
-                "flex items-center justify-center",
-                "text-white font-semibold tracking-wide",
-                "transition-transform active:scale-[0.98] select-none",
-                "shadow-[0_14px_24px_rgba(0,0,0,0.35)]",
-                "bg-no-repeat bg-center bg-contain",
-                "bg-[url('/assets/GOATMUSIC/StartScreen/DESKTOP/BOTON.png')]",
-                "block mx-auto ",
-              ].join(" ")}
-            >
-              Play
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* ======== MOBILE / TABLET (< 1024px) ======== */}
-      <section className="block lg:hidden min-h-[100svh] w-full flex items-center justify-center px-5 py-6">
-        {/* Wrapper: ancho proporcional + transform solo con Tailwind */}
+        {/* Fila 2: Input + Botón */}
         <div
-          className={[
-            "mx-auto flex flex-col items-center gap-5",
-            "transform-gpu origin-top",
-            // Escala base por vmin para que el layout sea proporcional al lado corto,
-            // y además aplicamos scale-* del hook para afinar.
-            "w-[clamp(320px,92vmin,520px)]",
-            scale, // ← scale-[...] según WIDTH
-            ty,    // ← translate-y-[...] según WIDTH
-          ].join(" ")}
+          className="w-full mx-auto flex flex-col items-center gap-4"
+          style={{ marginTop: "-30px" }}
         >
-          {/* Fila 1: Imagen */}
-          <div className="relative w-full flex items-center justify-center">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              onNext(prompt);
+            }}
+            className="w-full relative flex items-center justify-center"
+          >
+            {/* Imagen detrás con mayor tamaño */}
             <img
-              src="/assets/GOATMUSIC/StartScreen/MOBILE/MARCO_HOME_PANTALLA.png"
-              alt="Marco home móvil"
+              src="/assets/GOATMUSIC/StartScreen/MOBILE/IMPUT.png"
+              alt="Fondo input"
               draggable={false}
-              className="block w-full h-auto select-none pointer-events-none"
+              className="w-full h-auto pointer-events-none select-none"
             />
-          </div>
 
-          {/* Fila 2: Input + Botón */}
-          <div className="w-full mx-auto flex flex-col items-center gap-4">
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                onNext(desktopPrompt);
-              }}
-              className="w-full"
-            >
-              <input
-                type="text"
-                value={desktopPrompt}
-                onChange={(e) => setDesktopPrompt(e.target.value)}
-                placeholder="Escríbelo ahora y ponte los audífonos…"
-                className="w-full h-[56px] rounded-full px-5 text-[16px] bg-white/95 text-slate-900 shadow-[0_10px_20px_rgba(0,0,0,0.25)] ring-1 ring-white/40 focus:outline-none focus:ring-2 focus:ring-white"
-              />
-            </form>
+            {/* Input transparente encima ocupando lo mismo que la imagen */}
+            <input
+              type="text"
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder="Escríbelo ahora y ponte los audífonos…"
+              className="w-full h-full rounded-full px-5 text-[16px]
+               bg-transparent text-slate-900 placeholder:text-slate-700
+               focus:outline-none z-10"
+              style={{ position: "absolute", top: "-30px" }}
+            />
+          </form>
 
-            <button
-              type="button"
-              onClick={() => onNext(desktopPrompt)}
-              className={[
-                "relative isolate h-[56px] w-[min(240px,100%)]",
-                "flex items-center justify-center",
-                "text-white font-semibold tracking-wide",
-                "transition-transform active:scale-[0.98] select-none",
-                "shadow-[0_14px_24px_rgba(0,0,0,0.35)]",
-                "bg-no-repeat bg-center bg-contain",
-                "bg-[url('/assets/GOATMUSIC/StartScreen/MOBILE/BOTON.png')]",
-                "block mx-auto",
-              ].join(" ")}
-            >
-              Play
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => onNext(prompt)}
+            className={[
+              "relative h-[56px] w-[min(240px,100%)]",
+              "flex items-center justify-center",
+              "shadow-[0_14px_24px_rgba(0,0,0,0.35)]",
+              "block mx-auto",
+            ].join(" ")}
+            style={{
+              borderRadius: "28px",
+              boxShadow: "0 14px 24px rgba(0,0,0,0.35)",
+              color: "#0c4684",
+              fontWeight: "bolder",
+              fontSize: "28px",
+              background: "rgba(255, 255, 255, 0.72)",
+            }}
+          >
+            Play
+          </button>
         </div>
-      </section>
-    </>
+      </div>
+    </section>
   );
 }

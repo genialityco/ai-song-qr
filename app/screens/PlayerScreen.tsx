@@ -45,13 +45,14 @@ export default function PlayerScreen({
 
   // ✅ Estado listo si hay audio real
   const ready = !!audioUrl;
-  
+
   // URL encuesta para el QR
   const urlSurvey = ready
     ? `${BASE_URL}/survey?src=${encodeURIComponent(
-      audioUrl!
-    )}&filename=${encodeURIComponent(`${slugify(title)}.mp3`)}&final=${isFinal ? "1" : "0"
-    }${taskId ? `&taskId=${encodeURIComponent(taskId)}` : ""}`
+        audioUrl!
+      )}&filename=${encodeURIComponent(`${slugify(title)}.mp3`)}&final=${
+        isFinal ? "1" : "0"
+      }${taskId ? `&taskId=${encodeURIComponent(taskId)}` : ""}`
     : "";
 
   useEffect(() => {
@@ -86,18 +87,18 @@ export default function PlayerScreen({
       if (wasPlaying && audioUrl) {
         try {
           el.currentTime = prevTime;
-        } catch { }
-        el.play().catch(() => { });
+        } catch {}
+        el.play().catch(() => {});
         setIsPlaying(true);
       } else {
         setIsPlaying(false);
       }
-    } catch { }
+    } catch {}
 
     try {
       sourceRef.current?.disconnect();
       analyserRef.current?.disconnect();
-    } catch { }
+    } catch {}
     sourceRef.current = null;
     analyserRef.current = null;
     setAnalyserReady(false);
@@ -110,7 +111,7 @@ export default function PlayerScreen({
       audioCtxRef.current = new AC();
     }
     if (audioCtxRef.current.state === "suspended") {
-      await audioCtxRef.current.resume().catch(() => { });
+      await audioCtxRef.current.resume().catch(() => {});
     }
     if (!sourceRef.current || !analyserRef.current) {
       const ctx = audioCtxRef.current;
@@ -147,7 +148,7 @@ export default function PlayerScreen({
         sourceRef.current?.disconnect();
         analyserRef.current?.disconnect();
         audioCtxRef.current?.close();
-      } catch { }
+      } catch {}
       sourceRef.current = null;
       analyserRef.current = null;
       audioCtxRef.current = null;
@@ -247,34 +248,35 @@ export default function PlayerScreen({
               transform: "translate(0px, 5px)", // 👉 mueve en X (izq-der) y Y (arriba-abajo)
             }}
           >
-            <div className="relative mx-auto w-full max-w-[1500px]">
-              <div className="flex items-center justify-center gap-0">
+            <div className="relative mx-auto w-full">
                 {/* Izquierda */}
                 <div
-                  className="relative shrink-0 -mr-6"
+                  className="relative"
                   style={{
-                    width: "500px",
-                    height: "500px",
+                    width: "370px",
+                    height: "700px",
                     backgroundImage:
-                      "url('/assets/TABLET/IMG/MARCO_REPRODUCTOR.png')",
+                      "url('/assets/MARCO_REPRODUCTOR_ANIMADO.gif')",
                     backgroundRepeat: "no-repeat",
-                    backgroundSize: "contain",
+                    backgroundSize: "cover",
                     backgroundPosition: "center",
+                    borderRadius: "45px",
                   }}
                 >
                   <div
                     className="absolute z-20 pointer-events-none"
                     style={{
-                      left: "27%",
+                      left: "5%",
                       right: "12%",
-                      top: "60%",
-                      width: "230px",
-                      height: "42px",
+                      top: "65%",
+                      width: "330px",
+                      height: "50px",
                       overflow: "hidden",
                     }}
                   >
                     <Waveform analyser={analyserRef.current} active={ready} />
                   </div>
+
                   <button
                     onClick={toggle}
                     className="absolute z-10 rounded-full shadow-lg transition active:scale-95 disabled:opacity-50"
@@ -310,22 +312,16 @@ export default function PlayerScreen({
                 </div>
 
                 {/* Derecha */}
-                <div className="relative -ml-10 lg:-ml-12 xl:-ml-14 2xl:-ml-16 flex flex-col items-start">
+                <div className="relative flex  items-center">
                   <img
                     src="/assets/PANTALLA/IMG/CAJA_TEXTO_01.png"
                     alt="Caja de texto"
                     className="block w-[min(46vw,620px)] h-auto"
                     draggable={false}
                   />
-                  <div className="mt-3 w-[min(46vw,620px)] flex justify-center">
-                    <LogoIW height={56} width={260} />
-                  </div>
                 </div>
-              </div>
             </div>
           </div>
-
-
         </>
       )}
       {/* ======== READY ======== */}
@@ -460,7 +456,6 @@ export default function PlayerScreen({
             </div>
           </div>
 
-
           {/* DESKTOP (READY) */}
           <div className="hidden md:block">
             <div className="relative mx-auto w-full max-w-[1500px] mt-6">
@@ -471,7 +466,8 @@ export default function PlayerScreen({
                   style={{
                     width: "500px",
                     height: "500px",
-                    backgroundImage: "url('/assets/TABLET/IMG/MARCO_REPRODUCTOR_QR.png')",
+                    backgroundImage:
+                      "url('/assets/TABLET/IMG/MARCO_REPRODUCTOR_QR.png')",
                     backgroundRepeat: "no-repeat",
                     backgroundSize: "contain",
                     backgroundPosition: "center",

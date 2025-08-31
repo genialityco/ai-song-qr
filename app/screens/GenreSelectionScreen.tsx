@@ -8,7 +8,7 @@ type GenreCard = { key: string; label: string };
 const CARDS: GenreCard[] = [
   { key: "pop", label: "Pop" },
   { key: "hip_hop_rap", label: "Hip-Hop / Rap" },
-  { key: "rock_alt", label: "Rock / Alternativo" },
+  { key: "rock_alt", label: "Rock" },
   { key: "kpop", label: "K-pop" },
   { key: "reggaeton", label: "Reggaetón" },
   { key: "salsa", label: "Salsa" },
@@ -22,7 +22,6 @@ const bgForIndex = (i: number) => {
 export default function GenreSelectionScreen({
   style,
   setStyle,
-  onBack,
   onNext,
   error,
 }: {
@@ -36,184 +35,87 @@ export default function GenreSelectionScreen({
   const selectedIndex = CARDS.findIndex((c) => c.label === style);
   const selectedBg = selectedIndex >= 0 ? bgForIndex(selectedIndex) : null;
 
-  /* Constantes específicas de desktop */
-  const FOOTER_ORIGINAL_W = 1000;
-  const SLIDER_RIGHT_PX = 28;
-  const SLIDER_Y_OFFSET_PX = 0;
-  const SLIDER_X_OFFSET_PX = 0;
-
   return (
     <div className="w-full min-h-screen relative flex flex-col text-white overflow-hidden">
-
-      {/* =============== VISTA MOBILE =============== */}
-      <div className="md:hidden">
-        {/* HEADER (solo mobile) */}
-        <div
-          className="relative z-20 pt-3 px-4"
-          style={{
-            transform: "translate(0px, 40px) scale(1.1)", // mueve/escala header mobile
-            transformOrigin: "top center",
-          }}
-        >
-          <div className="flex justify-center" style={{ transform: " translate(-10px, 0px)" }}>
-            <img
-              src="/assets/TABLET/SVG/LOGOS-WIN+INTEL.png"
-              alt="Intel + Windows 11"
-              className="h-16"
-            />
-          </div>
-
-          <div className="mt-2 text-center">
-            <img
-              src="/assets/PANTALLA/TEXT/TEXTOS-03.svg"
-              alt="¡Carga exitosa!"
-              className="mx-auto h-20 w-auto"
-            />
-          </div>
-        </div>
-
-        {/* GRID (solo mobile) */}
-        <div className="relative z-10 w-full px-3" style={{ transform: "translateY(40px)" }}>
-          <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 justify-items-center">
-            {CARDS.map((card, i) => {
-              const selected = style === card.label;
-              const bg = bgForIndex(i);
-              const isRightColMobile = i % 2 === 1;
-              const mobileRound = isRightColMobile
-                ? "rounded-r-[22px] rounded-l-none"
-                : "rounded-l-[22px] rounded-r-none";
-              return (
-                <button
-                  key={card.key}
-                  onClick={() => setStyle(card.label)}
-                  className={[
-                    "relative overflow-hidden",
-                    mobileRound,
-                    "shadow-[0_8px_20px_rgba(0,0,0,0.35)] transition transform text-center",
-                    "w-[84%] max-w-[240px] h-[72px]",
-                    selected ? "ring-2 ring-white/70" : "",
-                  ].join(" ")}
-                  style={{
-                    backgroundImage: `url('${bg}')`,
-                    backgroundSize: "cover",
-                    backgroundPosition: "center",
-                  }}
-                >
-                  <div className="absolute inset-0 bg-black/20" />
-                  {/* Texto movible por card (mobile) */}
-                  <div
-                    className="absolute z-10 flex flex-col items-center gap-1 text-white"
-                    style={{
-                      top: "50%",
-                      left: "50%",
-                      transform: "translate(-10%, -50%)",
-                      textAlign: "center",
-                    }}
-                  >
-                    <div className="font-semibold text-[11px] drop-shadow">
-                      {card.label}
-                    </div>
-                    <span
-                      className={[
-                        "inline-block leading-none",
-                        "text-[10px] px-2 py-1 rounded-md border",
-                        selected
-                          ? "bg-white text-black border-white"
-                          : "bg-transparent text-white border-white/70 hover:bg-white/10",
-                      ].join(" ")}
-                    >
-                      Seleccionar
-                    </span>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-          {error && <div className="mt-2 text-center text-red-300 text-sm">{error}</div>}
-        </div>
-
-        {/* FOOTER + SLIDER (solo mobile, full-width) */}
-        <div className="relative z-20 mt-6 mb-8" style={{ transform: "translate(0px, 30px)" }}>
-          <div className="relative w-full">
-            {/* Imagen full width */}
-            <img
-              src="/assets/PANTALLA/TEXT/CAJA-DE-TEXTO_FOOTER_PANTALLA.png"
-              alt="Beneficios Lenovo VoIP"
-              className="block w-full h-auto"
-            />
-            {/* Slider sobre la imagen */}
-            <div
-              className="absolute"
-              style={{
-                top: "50%",
-                left: "50%",
-                transform: "translate(-50%, -200%) scale(1)",
-                width: "92%",
-              }}
-            >
-              <SlideToStart
-                onComplete={onNext}
-                disabled={!canNext}
-                selectedLabel={canNext ? style : undefined}
-                selectedBg={selectedBg}
-                className="w-full"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* =============== VISTA DESKTOP =============== */}
       <div className="hidden md:block">
         {/* HEADER (solo desktop) */}
-        <div className="relative z-20 pt-4">
-          <div className="flex justify-center">
-            <img
-              src="/assets/TABLET/SVG/LOGOS-WIN+INTEL.png"
-              alt="Intel + Windows 11"
-              className="h-16"
-            />
-          </div>
-
-          <div className="mt-2 text-center px-4">
+        <div className="relative z-20 pt-4" style={{ marginTop: "20%" }}>
+          <div
+            className="mt-2 text-center px-4"
+            style={{ justifyContent: "center", display: "flex" }}
+          >
             <img
               src="/assets/PANTALLA/TEXT/TEXTOS-03.svg"
               alt="¡Carga exitosa!"
-              className="mx-auto h-24 w-auto"
+              style={{ width: "70%", marginBottom: "20px" }}
             />
           </div>
         </div>
 
         {/* GRID (solo desktop) */}
         <div className="relative z-10 w-full mx-auto max-w-4xl px-6">
-          <div className="mt-3 grid grid-cols-3 gap-x-5 gap-y-4 justify-items-center">
+          <div className="mt-3 grid grid-cols-2 gap-x-5 gap-y-4 justify-items-center">
             {CARDS.map((card, i) => {
               const selected = style === card.label;
               const bg = bgForIndex(i);
+
+              const isRightCol = i % 2 === 1;
+              const cornerStyle = isRightCol
+                ? {
+                    width: "400px",
+                    height: "140px",
+                    borderTopRightRadius: 40,
+                    borderBottomRightRadius: 40,
+                  }
+                : {
+                    width: "400px",
+                    height: "140px",
+                    borderTopLeftRadius: 40,
+                    borderBottomLeftRadius: 40,
+                  };
+
               return (
                 <button
                   key={card.key}
                   onClick={() => setStyle(card.label)}
                   className={[
-                    "relative overflow-hidden md:rounded-r-[22px] md:rounded-l-none",
+                    "relative overflow-hidden",
                     "shadow-[0_8px_20px_rgba(0,0,0,0.35)] transition transform text-center",
-                    "w-[82%] max-w-[260px] h-[92px]",
-                    selected ? "ring-2 ring-white/70 md:scale-[1.01]" : "hover:md:scale-[1.01]",
+                    selected
+                      ? "ring-2 ring-white/70 md:scale-[1.01]"
+                      : "hover:md:scale-[1.01]",
                   ].join(" ")}
-                  style={{
-                    backgroundImage: `url('${bg}')`,
-                    backgroundSize: "cover",
-                    backgroundPosition: "center",
-                  }}
+                  style={cornerStyle}
                 >
+                  {/* Fondo como capa separada */}
+                  <div
+                    className="absolute inset-0"
+                    style={{
+                      backgroundImage: `url('${bg}')`,
+                      backgroundSize: "cover",
+                      backgroundPosition: "center",
+                      transform: isRightCol ? "none" : "scaleX(-1)",
+                    }}
+                  />
+                  {/* Overlay oscuro */}
                   <div className="absolute inset-0 bg-black/20" />
-                  {/* Texto centrado (desktop) */}
-                  <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-1 px-2 text-white text-center">
-                    <div className="font-semibold text-[13px] drop-shadow">{card.label}</div>
+
+                  {/* Texto normal, no se invierte */}
+                  <div
+                    className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-1 text-white text-center"
+                    style={{
+                      marginLeft: isRightCol ? "35%" : "-35%",
+                      marginRight: isRightCol ? "20px" : "-20px",
+                    }}
+                  >
+                    <div className="font-semibold text-[30px] drop-shadow">
+                      {card.label}
+                    </div>
                     <span
                       className={[
                         "inline-block leading-none",
-                        "text-[12px] px-2 py-1 rounded-md border",
+                        "text-[24px] px-2 py-1 mt-1 rounded-md border",
                         selected
                           ? "bg-white text-black border-white"
                           : "bg-transparent text-white border-white/70 hover:bg-white/10",
@@ -226,45 +128,69 @@ export default function GenreSelectionScreen({
               );
             })}
           </div>
-          {error && <div className="mt-2 text-center text-red-300 text-sm">{error}</div>}
+
+          {error && (
+            <div className="mt-2 text-center text-red-300 text-sm">{error}</div>
+          )}
         </div>
 
         {/* FOOTER + SLIDER (solo desktop) */}
-        <div className="relative z-20 mt-6 mb-8 px-4">
-          {/* PADRE RELATIVO Y SIN RECORTES */}
+        <div
+          style={{
+            position: "relative",
+            zIndex: 20,
+            marginTop: "24px",
+            marginBottom: "32px",
+          }}
+        >
+          {/* Contenedor centrado y con ancho controlado */}
           <div
-            className="relative mx-auto overflow-visible"     // 👈 importante: no recortar overlays
-            style={{ width: "min(100%, 1000px)" }}            // 👈 ancho con unidades válidas
+            style={{
+              position: "relative",
+              margin: "0 auto",
+              width: "100%",
+              maxWidth: "1000px",
+              paddingLeft: "16px",
+              paddingRight: "16px",
+            }}
           >
+            {/* Imagen contenedor de textos */}
             <img
-              src="/assets/PANTALLA/TEXT/FOOTER_BARRA_NEGRA.png"
+              src="/assets/PANTALLA/TEXT/CAJA-DE-TEXTO_FOOTER_PANTALLA.png"
               alt="Beneficios Lenovo VoIP"
-              className="block w-full h-auto rounded-xl select-none pointer-events-none"
+              style={{
+                display: "block",
+                width: "100%",
+                height: "500px",
+                objectFit: "cover",
+                borderRadius: "12px",
+                userSelect: "none",
+                pointerEvents: "none",
+              }}
             />
 
-            {/* SLIDER ANCLADO A LA DERECHA, CENTRADO VERTICAL, SIN FLEX */}
+            {/* Barra deslizante superpuesta en la parte superior de la imagen */}
             <div
               style={{
-                top: "50%",
-                right: "28px",
-                transform: "translate(54%, -300%)"                // solo Y, evita translateX grandes
+                position: "absolute",
+                top: "10%",
+                width: "90%",
+                display: "flex",
+                justifyContent: "center",
+                left: "5%",
               }}
             >
-              <div className="shrink-0">
+              <div style={{ width: "100%" }}>
                 <SlideToStart
                   onComplete={onNext}
                   disabled={!canNext}
                   selectedLabel={canNext ? style : undefined}
                   selectedBg={selectedBg}
-                  className="w-[420px] max-w-[min(420px,calc(100vw-6rem))]" // evita encogerse o salirse
                 />
               </div>
             </div>
           </div>
         </div>
-
-
-
       </div>
     </div>
   );
