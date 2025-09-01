@@ -2,13 +2,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Head from "next/head";                   // 👈 para <link rel="preload">
+import Head from "next/head"; // 👈 para <link rel="preload">
 import StartScreen from "./screens/StartScreen";
 import GenreSelectionScreen from "./screens/GenreSelectionScreen";
 import LoadingScreen from "./screens/LoadingScreen";
 import PlayerScreen from "./screens/PlayerScreen";
+import PhoneScreen from "./screens/PhoneScreen";
 
-type Step = "start" | "genre" | "loading" | "player" | "survey";
+type Step = "start" | "phone" | "genre" | "loading" | "player" | "survey";
 
 /* ================== PRELOAD HELPERS (sin audio) ================== */
 function preloadImage(src: string) {
@@ -85,53 +86,6 @@ export default function Page() {
   const [error, setError] = useState<string | null>(null);
   const pollTimer = useRef<NodeJS.Timeout | null>(null);
 
-  const handleStartNext = (promptFromDesktop?: string) => {
-    if (promptFromDesktop && promptFromDesktop.trim()) {
-      setThemePrompt(promptFromDesktop.trim());
-    }
-    setStep("genre");
-  };
-
-  const startPolling = (id: string) => {
-    if (pollTimer.current) clearInterval(pollTimer.current);
-    setTaskId(id);
-    setStatus("PENDING");
-    setStreamUrl(null);
-    setFinalAudioUrl(null);
-
-    // 🔥 apenas empieza el polling, vamos calentando visuals en background
-    void preloadPlayerVisualsOnly();
-
-    pollTimer.current = setInterval(async () => {
-      try {
-        const r = await fetch(
-          `/api/get-task?taskId=${encodeURIComponent(id)}`,
-          { cache: "no-store" }
-        );
-        const data = await r.json();
-        if (!r.ok) throw new Error(data?.error || "Error en polling");
-
-        setStatus(data.status || "—");
-
-        const s = data?.track?.streamAudioUrl || null;
-        if (s && !finalAudioUrl) {
-          setStreamUrl((prev) => prev || s);
-          // 👇 NO precargamos audio (solo visuals), ya se disparó arriba
-        }
-
-        if (data.status === "SUCCESS" && data.track?.audioUrl) {
-          setFinalAudioUrl(data.track.audioUrl);
-          clearInterval(pollTimer.current!);
-          if (step !== "player") {
-            await goToPlayer(); // 👈 espera precarga de visuals antes de montar
-          }
-        }
-      } catch {
-        // ignorar fallos transitorios
-      }
-    }, 2000);
-  };
-
   const handleSubmitGeneration = async () => {
     setError(null);
     setTitle("Mi Canción");
@@ -164,16 +118,108 @@ export default function Page() {
     }
   };
 
+  const [phone, setPhone] = useState<string>(() => {
+    if (typeof window === "undefined") return "";
+    return localStorage.getItem("userPhone") || "";
+  });
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      if (phone) localStorage.setItem("userPhone", phone);
+    }
+  }, [phone]);
+
   useEffect(() => {
     return () => {
       if (pollTimer.current) clearInterval(pollTimer.current);
     };
   }, []);
 
+  const clearPhone = () => {
+    setPhone("");
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("userPhone");
+    }
+  };
+
+  const startPolling = (id: string) => {
+    if (pollTimer.current) clearInterval(pollTimer.current);
+    setTaskId(id);
+    setStatus("PENDING");
+    setStreamUrl(null);
+    setFinalAudioUrl(null);
+
+    // 🔥 apenas empieza el polling, vamos calentando visuals en background
+    void preloadPlayerVisualsOnly();
+
+    pollTimer.current = setInterval(async () => {
+      try {
+        const r = await fetch(
+          `/api/get-task?taskId=${encodeURIComponent(id)}`,
+          { cache: "no-store" }
+        );
+        const data = await r.json();
+        if (!r.ok) throw new Error(data?.error || "Error en polling");
+
+        setStatus(data.status || "—");
+
+        const s = data?.track?.streamAudioUrl || null;
+        if (s && !finalAudioUrl) {
+          setStreamUrl((prev) => prev || s);
+          // 👇 NO precargamos audio (solo visuals), ya se disparó arriba
+        }
+
+        if (data.status === "SUCCESS" && data.track?.audioUrl) {
+          setFinalAudioUrl(data.track.audioUrl);
+
+          // 👇 Dispara guardado UNA sola vez cuando obtienes la final
+          if (!hasSavedRef.current && data.track.audioUrl && phone) {
+            hasSavedRef.current = true;
+            void saveMediaToCentral({ finalUrl: data.track.audioUrl });
+          }
+
+          clearInterval(pollTimer.current!);
+          if (step !== "player") {
+            await goToPlayer();
+          }
+        }
+      } catch {
+        // ignorar fallos transitorios
+      }
+    }, 2000);
+  };
+
+  const hasSavedRef = useRef(false);
+
+  async function saveMediaToCentral({ finalUrl }: { finalUrl: string }) {
+    if (!phone) return; // seguridad
+    try {
+      // Opción A (recomendada): manda la URL final original para que la Function la re-hospede
+      const originalUrl = finalUrl;
+
+      // Opción B (si quieres guardar tu link de descarga Next):
+      // const publicBase = typeof window !== "undefined" ? window.location.origin : "";
+      // const filename = (title || "cancion").toLowerCase()
+      //   .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      //   .replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "");
+      // originalUrl = `${publicBase}/api/download?src=${encodeURIComponent(finalUrl)}&filename=${encodeURIComponent(`${filename}.mp3`)}`;
+
+      await fetch("/api/save-media", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          phone,
+          project: "goatMusic", // 👈 esta experiencia
+          originalUrl, // lo que la Function descargará y re-hospedará
+        }),
+      });
+    } catch {
+      // no bloquees la UX por fallos transitorios de guardado
+    }
+  }
+
   const effectiveAudioUrl = finalAudioUrl ?? streamUrl;
   const isFinal = !!finalAudioUrl;
-
-  console.log("final audio", { finalAudioUrl });
 
   // 👇 Espera explícita antes de entrar al Player
   const goToPlayer = async () => {
@@ -181,6 +227,17 @@ export default function Page() {
       await preloadPlayerVisualsOnly();
     } finally {
       setStep("player");
+    }
+  };
+
+  const handleStartNext = (promptFromDesktop?: string) => {
+    if (promptFromDesktop && promptFromDesktop.trim()) {
+      setThemePrompt(promptFromDesktop.trim());
+    }
+    if (!phone) {
+      setStep("phone");
+    } else {
+      setStep("genre");
     }
   };
 
@@ -195,6 +252,17 @@ export default function Page() {
       </Head>
 
       {step === "start" && <StartScreen onNext={handleStartNext} />}
+
+      {step === "phone" && (
+        <PhoneScreen
+          defaultPhone={phone}
+          onBack={() => setStep("start")}
+          onNext={(n) => {
+            setPhone(n);
+            setStep("genre");
+          }}
+        />
+      )}
 
       {step === "genre" && (
         <GenreSelectionScreen
@@ -211,7 +279,9 @@ export default function Page() {
           status={status}
           streamUrl={streamUrl}
           onCancel={() => setStep("genre")}
-          onAutoProceed={() => { void goToPlayer(); }} // ⬅️ espera visuals
+          onAutoProceed={() => {
+            void goToPlayer();
+          }} // ⬅️ espera visuals
           autoProceedMs={20000}
         />
       )}
@@ -231,6 +301,7 @@ export default function Page() {
             setFinalAudioUrl(null);
             setError(null);
             setStep("start");
+            clearPhone(); 
           }}
         />
       )}
