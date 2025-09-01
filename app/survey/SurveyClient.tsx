@@ -3,9 +3,7 @@
 
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
-import { QRCodeCanvas } from "qrcode.react";
 import SurveyForm from "./SurveyForm";
-import SurveyTable from "./SurveyTable";
 
 function MiniPlayer({ src }: { src: string | null }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -197,7 +195,7 @@ export default function SurveyClient() {
     <div className="w-full min-h-screen relative flex flex-col items-center justify-start text-white overflow-hidden py-6">
       <div className="absolute inset-0 bg-black/40 z-0" />
       <div className="relative z-10 w-full max-w-4xl px-4 space-y-6">
-        <div className="bg-white/10 backdrop-blur-md p-6 rounded-2xl shadow-lg">
+        <div className="bg-white/10 backdrop-blur-md p-6 rounded-2xl shadow-lg" style={{marginTop: "30%"}}>
           <MiniPlayer src={audioUrl || null} />
           {!isFinal && (
             <div className="mt-2 text-xs text-white/80 text-center">
@@ -213,10 +211,6 @@ export default function SurveyClient() {
         ) : (
           <div className="bg-white/10 backdrop-blur-md p-6 rounded-2xl shadow-lg">
             <div className="flex justify-center items-center flex-col text-center space-y-4">
-              {isFinal && (
-                <QRCodeCanvas value={window.location.href} size={80} marginSize={1} />
-              )}
-
               <h2 className="text-2xl font-bold">¡Gracias por llenar la encuesta!</h2>
 
               {isFinal ? (
@@ -238,10 +232,6 @@ export default function SurveyClient() {
             </div>
           </div>
         )}
-
-        {/* {enviado && showParticipants && (
-          <SurveyTable refreshTrigger={tableRefreshTrigger} />
-        )} */}
       </div>
     </div>
   );

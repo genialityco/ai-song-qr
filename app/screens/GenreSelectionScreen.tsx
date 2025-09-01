@@ -64,13 +64,13 @@ export default function GenreSelectionScreen({
               const cornerStyle = isRightCol
                 ? {
                     width: "400px",
-                    height: "140px",
+                    height: "130px",
                     borderTopRightRadius: 40,
                     borderBottomRightRadius: 40,
                   }
                 : {
                     width: "400px",
-                    height: "140px",
+                    height: "130px",
                     borderTopLeftRadius: 40,
                     borderBottomLeftRadius: 40,
                   };
@@ -139,8 +139,7 @@ export default function GenreSelectionScreen({
           style={{
             position: "relative",
             zIndex: 20,
-            marginTop: "24px",
-            marginBottom: "32px",
+            marginTop: "15px",
           }}
         >
           {/* Contenedor centrado y con ancho controlado */}
@@ -149,9 +148,7 @@ export default function GenreSelectionScreen({
               position: "relative",
               margin: "0 auto",
               width: "100%",
-              maxWidth: "1000px",
-              paddingLeft: "16px",
-              paddingRight: "16px",
+              paddingInline: "2%",
             }}
           >
             {/* Imagen contenedor de textos */}
@@ -161,7 +158,7 @@ export default function GenreSelectionScreen({
               style={{
                 display: "block",
                 width: "100%",
-                height: "500px",
+                height: "480px",
                 objectFit: "cover",
                 borderRadius: "12px",
                 userSelect: "none",
