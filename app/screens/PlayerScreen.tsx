@@ -195,17 +195,6 @@ export default function PlayerScreen({
     };
   }, []);
 
-  // const MOBILE_LOGO_HEIGHT = 60;
-  // const MOBILE_LOGO_WIDTH: number | undefined = undefined;
-
-  // const QR_M_LEFT = "30%";
-  // const QR_M_TOP = "25%";
-  // const QR_M_SIZE = 58;
-
-  const QR_D_LEFT = "50%";
-  const QR_D_TOP = "28%";
-  const QR_D_SIZE = 220;
-
   return (
     <div className="w-full min-h-screen relative flex flex-col items-center justify-start text-white overflow-hidden">
       {/* ======== PRE-READY (!ready) ======== */}
@@ -218,13 +207,20 @@ export default function PlayerScreen({
             <div className="w-full h-screen grid place-items-center">
               <div className="relative flex flex-col items-center justify-center gap-6 px-4">
                 {/* Texto de intro (arriba) */}
-                  <img
-                    src="/assets/TEXTO_REPRODUCTOR.svg"
-                    alt="Texto"
-                    className="h-auto z-10 transition-opacity duration-700"
-                    style={{ width: "min(250px,60vw)", position: "absolute", top: "8%" }}
-                    draggable={false}
-                  />
+                <img
+                  src="/assets/TEXTO_REPRODUCTOR.svg"
+                  alt="Texto"
+                  className="h-auto z-10 transition-opacity duration-700"
+                  style={{
+                    width: "min(250px,60vw)",
+                    position: "absolute",
+                    top: "8%",
+                  }}
+                  draggable={false}
+                  loading="eager"
+                  decoding="async"
+                  fetchPriority="high"
+                />
                 {/* Reproductor */}
                 <div
                   className="relative"
@@ -242,6 +238,8 @@ export default function PlayerScreen({
                     loop
                     muted
                     playsInline
+                    preload="auto"
+                    disableRemotePlayback
                     style={{
                       position: "absolute",
                       inset: 0,
@@ -303,13 +301,15 @@ export default function PlayerScreen({
                 </div>
 
                 {/* Caja de texto de intro (abajo) */}
-                  <img
-                    src="/assets/PANTALLA/TEXT/TEXTOS-02.svg"
-                    alt="Caja de texto"
-                    className="block transition-opacity duration-700"
-                    style={{ width: "min(480px,80vw)", height: "auto" }}
-                    draggable={false}
-                  />
+                <img
+                  src="/assets/PANTALLA/TEXT/TEXTOS-02.svg"
+                  alt="Caja de texto"
+                  className="block transition-opacity duration-700"
+                  style={{ width: "min(480px,80vw)", height: "auto" }}
+                  draggable={false}
+                  loading="eager" // 👈 hint
+                  decoding="async" // 👈 hint
+                />
               </div>
             </div>
           </div>
@@ -342,6 +342,8 @@ export default function PlayerScreen({
                     loop
                     muted
                     playsInline
+                    preload="auto"
+                    disableRemotePlayback
                     style={{
                       position: "absolute",
                       inset: 0,
@@ -407,6 +409,9 @@ export default function PlayerScreen({
                   className="block"
                   style={{ width: "min(46vw,620px)", height: "auto" }}
                   draggable={false}
+                  loading="eager" // 👈 hint
+                  decoding="async" // 👈 hint
+                  fetchPriority="high" // 👈 hint
                 />
               </div>
             </div>
@@ -439,14 +444,14 @@ export default function PlayerScreen({
                 <div
                   className="absolute z-30 rounded-md bg-white p-1"
                   style={{
-                    left: QR_D_LEFT,
-                    top: QR_D_TOP,
+                    left: "50%",
+                    top: "28%",
                     transform: "translate(-50%, -50%)",
                   }}
                 >
                   <QRCodeCanvas
                     value={urlSurvey || BASE_URL}
-                    size={QR_D_SIZE}
+                    size={220}
                     bgColor="#ffffff"
                     fgColor="#000000"
                     level="H"
@@ -492,13 +497,29 @@ export default function PlayerScreen({
                     aria-label={isPlaying ? "Pausar" : "Reproducir"}
                     aria-pressed={isPlaying}
                     className="w-16 h-16 flex items-center justify-center bg-transparent p-0 cursor-pointer"
+                    style={{
+                      borderRadius: "50%",
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+                      background: "#6b95ff",
+                    }}
                   >
-                    <img
-                      src="/assets/TABLET/SVG/ICONOS_REPRODUCTOR-01.svg"
-                      alt="Pausar"
-                      className="w-full h-full"
-                      draggable={false}
-                    />
+                    {isPlaying ? (
+                      <div className="mx-auto w-4 h-4 flex gap-1">
+                        <span className="inline-block w-[6px] h-4 bg-white" />
+                        <span className="inline-block w-[6px] h-4 bg-white" />
+                      </div>
+                    ) : (
+                      <div
+                        style={{
+                          margin: "0 auto",
+                          width: 0,
+                          height: 0,
+                          borderTop: "10px solid transparent",
+                          borderBottom: "10px solid transparent",
+                          borderLeft: "16px solid white",
+                        }}
+                      />
+                    )}
                   </button>
 
                   <button
