@@ -1,19 +1,19 @@
-import type { Timestamp } from "firebase/firestore";
+import type { Timestamp, FieldValue } from "firebase/firestore";
 
-export interface FormData {
-    id?: string;
-    nombre: string;
-    telefono: string;
-    correo: string;
-    empresa: string;
-    cargo: string;
-    createdAt?: Timestamp;
+export interface TypeProject {
+    updatedAt: Timestamp | FieldValue;
+    url: string;
 }
 
-export interface FormErrors {
-    nombre?: string;
-    telefono?: string;
-    correo?: string;
-    empresa?: string;
-    cargo?: string;
+export type ProjectsMap = {
+    goatHeart?: TypeProject;
+    goatMusic?: TypeProject;
+    goatBody?: TypeProject;
+    [k: string]: TypeProject | undefined;
+};
+
+export interface UserDoc {
+    LastUpdated: Timestamp | FieldValue;
+    phone: string;
+    projects: ProjectsMap;
 }

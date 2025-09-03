@@ -1,95 +1,144 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { FormData } from "../survey/interfaces";
-import { surveyService } from "../services/SurveyService";
+import { useState, useEffect, useMemo } from "react";
 import type { Timestamp } from "firebase/firestore";
+import type { UserDoc, TypeProject } from "../survey/interfaces"; // <-- ajusta ruta
+import { usersService } from "../services/SurveyService";        // <-- ajusta ruta
 
 interface SurveyTableProps {
-    refreshTrigger?: number; // Para forzar actualización cuando se agregue un nuevo registro
+    refreshTrigger?: number; // Para forzar actualización externa
     className?: string;
 }
 
+type Row = UserDoc & { id: string };
+
 export default function SurveyTable({ refreshTrigger = 0, className = "" }: SurveyTableProps) {
-    const [surveys, setSurveys] = useState<FormData[]>([]);
+    const [rows, setRows] = useState<Row[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string>("");
     const [totalCount, setTotalCount] = useState<number>(0);
-    const [currentPage, setCurrentPage] = useState(1);
-    const recordsPerPage = 5; // Menos registros para mejor visualización
 
-    // Cargar datos al montar el componente y cuando cambie refreshTrigger
+    // Paginación en cliente
+    const [currentPage, setCurrentPage] = useState(1);
+    const recordsPerPage = 5;
+
     useEffect(() => {
         loadData();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [refreshTrigger]);
 
     const loadData = async () => {
         setLoading(true);
         setError("");
-
         try {
-            const [surveysData, count] = await Promise.all([
-                surveyService.getAllSurveyRecords(),
-                surveyService.getSurveyCount()
+            const [users, count] = await Promise.all([
+                usersService.getAllUsers(),
+                usersService.getUsersCount(),
             ]);
-
-            setSurveys(surveysData);
+            setRows(users);
             setTotalCount(count);
-            setCurrentPage(1); // Reset página al recargar
+            setCurrentPage(1);
         } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : "Error al cargar las encuestas";
-            setError(errorMessage);
+            const msg = err instanceof Error ? err.message : "Error al cargar los usuarios";
+            setError(msg);
         } finally {
             setLoading(false);
         }
     };
 
-    const formatDate = (timestamp: Timestamp | null | undefined): string => {
-        if (!timestamp) return "N/A";
-        return timestamp.toDate().toLocaleDateString("es-ES", {
+    const formatTs = (ts?: Timestamp | import("firebase/firestore").FieldValue | null): string => {
+        if (!ts || typeof (ts as any).toDate !== "function") return "N/A";
+        return (ts as Timestamp).toDate().toLocaleString("es-CO", {
             year: "numeric",
             month: "short",
-            day: "numeric",
+            day: "2-digit",
             hour: "2-digit",
             minute: "2-digit",
         });
     };
 
+    const shortUrl = (url?: string, max = 42) => {
+        if (!url) return "";
+        try {
+            const u = new URL(url);
+            const s = `${u.hostname}${u.pathname}`;
+            return s.length > max ? s.slice(0, max - 1) + "…" : s;
+        } catch {
+            return url.length > max ? url.slice(0, max - 1) + "…" : url;
+        }
+    };
+
     const exportToCSV = () => {
-        if (surveys.length === 0) return;
+        if (rows.length === 0) return;
 
-        const headers = ["Nombre", "Teléfono", "Correo", "Empresa", "Cargo", "Fecha"];
-        const csvContent = [
-            headers.join(","),
-            ...surveys.map(survey => [
-                `"${survey.nombre}"`,
-                survey.telefono,
-                `"${survey.correo}"`,
-                `"${survey.empresa}"`,
-                `"${survey.cargo}"`,
-                survey.createdAt?.toDate ? survey.createdAt.toDate().toLocaleString() : "N/A"
-            ].join(","))
-        ].join("\n");
+        const headers = [
+            "phone",
+            "LastUpdated",
+            "goatHeart.updatedAt",
+            "goatHeart.url",
+            "goatMusic.updatedAt",
+            "goatMusic.url",
+            "goatBody.updatedAt",
+            "goatBody.url",
+        ];
 
-        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        const line = (r: Row, key: keyof Row | string) => {
+            const get = (k: string): any =>
+                k.split(".").reduce<any>((acc, part) => (acc ? acc[part as keyof typeof acc] : undefined), r as any);
+
+            const v = typeof key === "string" ? get(key) : (r as any)[key];
+            if (v && typeof v.toDate === "function") return `"${v.toDate().toISOString()}"`;
+            if (typeof v === "string") return `"${v.replace(/"/g, '""')}"`;
+            return v != null ? String(v) : "";
+        };
+
+        const rowsCsv = rows.map((r) =>
+            [
+                line(r, "phone"),
+                line(r, "LastUpdated"),
+                line(r, "projects.goatHeart.updatedAt"),
+                line(r, "projects.goatHeart.url"),
+                line(r, "projects.goatMusic.updatedAt"),
+                line(r, "projects.goatMusic.url"),
+                line(r, "projects.goatBody.updatedAt"),
+                line(r, "projects.goatBody.url"),
+            ].join(",")
+        );
+
+        const csv = [headers.join(","), ...rowsCsv].join("\n");
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
         const link = document.createElement("a");
-        const url = URL.createObjectURL(blob);
-        link.setAttribute("href", url);
-        link.setAttribute("download", `encuestas_${new Date().toISOString().split('T')[0]}.csv`);
-        link.style.visibility = "hidden";
+        link.href = URL.createObjectURL(blob);
+        link.download = `users_${new Date().toISOString().split("T")[0]}.csv`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
     };
 
-    // Paginación
     const indexOfLastRecord = currentPage * recordsPerPage;
     const indexOfFirstRecord = indexOfLastRecord - recordsPerPage;
-    const currentRecords = surveys.slice(indexOfFirstRecord, indexOfLastRecord);
-    const totalPages = Math.ceil(surveys.length / recordsPerPage);
+    const currentRecords = useMemo(
+        () => rows.slice(indexOfFirstRecord, indexOfLastRecord),
+        [rows, indexOfFirstRecord, indexOfLastRecord]
+    );
+    const totalPages = Math.ceil(rows.length / recordsPerPage);
 
-    const handlePageChange = (page: number) => {
-        setCurrentPage(page);
+    const renderProjectCell = (p?: TypeProject) => {
+        if (!p) return <span className="text-white/50">—</span>;
+        return (
+            <div className="flex flex-col gap-1">
+                <a
+                    href={p.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs underline text-blue-200 hover:text-blue-100 break-all"
+                    title={p.url}
+                >
+                    {shortUrl(p.url)}
+                </a>
+                <span className="text-[10px] text-white/60">{formatTs(p.updatedAt)}</span>
+            </div>
+        );
     };
 
     if (loading) {
@@ -108,7 +157,7 @@ export default function SurveyTable({ refreshTrigger = 0, className = "" }: Surv
             {/* Header */}
             <div className="flex justify-between items-center mb-6">
                 <div>
-                    <h3 className="text-xl font-bold text-white">Registros de Encuestas</h3>
+                    <h3 className="text-xl font-bold text-white">Usuarios / Proyectos</h3>
                     <p className="text-white/70 text-sm">
                         Total: <span className="font-semibold">{totalCount}</span> registros
                     </p>
@@ -123,7 +172,7 @@ export default function SurveyTable({ refreshTrigger = 0, className = "" }: Surv
                     </button>
                     <button
                         onClick={exportToCSV}
-                        disabled={surveys.length === 0}
+                        disabled={rows.length === 0}
                         className="px-3 py-1 bg-green-500/80 hover:bg-green-600/80 text-white rounded-lg text-sm transition-colors disabled:opacity-50"
                     >
                         Exportar CSV
@@ -139,12 +188,10 @@ export default function SurveyTable({ refreshTrigger = 0, className = "" }: Surv
             )}
 
             {/* Tabla */}
-            {surveys.length === 0 ? (
+            {rows.length === 0 ? (
                 <div className="text-center py-8">
                     <p className="text-white/70 text-lg">No hay registros disponibles</p>
-                    <p className="text-white/50 text-sm mt-1">
-                        Los datos aparecerán aquí cuando se completen encuestas
-                    </p>
+                    <p className="text-white/50 text-sm mt-1">Los datos aparecerán aquí cuando existan usuarios</p>
                 </div>
             ) : (
                 <>
@@ -152,23 +199,19 @@ export default function SurveyTable({ refreshTrigger = 0, className = "" }: Surv
                         <table className="w-full text-sm">
                             <thead>
                                 <tr className="border-b border-white/20">
-                                    <th className="text-left py-3 px-2 font-semibold text-white/90">Nombre</th>
-                                    <th className="text-left py-3 px-2 font-semibold text-white/90">Teléfono</th>
-                                    <th className="text-left py-3 px-2 font-semibold text-white/90">Correo</th>
-                                    <th className="text-left py-3 px-2 font-semibold text-white/90">Empresa</th>
-                                    <th className="text-left py-3 px-2 font-semibold text-white/90">Cargo</th>
-                                    <th className="text-left py-3 px-2 font-semibold text-white/90">Fecha</th>
+                                    <th className="text-left py-3 px-2 font-semibold text-white/90">Phone</th>
+                                    <th className="text-left py-3 px-2 font-semibold text-white/90">goatHeart</th>
+                                    <th className="text-left py-3 px-2 font-semibold text-white/90">goatMusic</th>
+                                    <th className="text-left py-3 px-2 font-semibold text-white/90">goatBody</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {currentRecords.map((survey, index) => (
-                                    <tr key={survey.id} className={`border-b border-white/10 ${index % 2 === 0 ? 'bg-white/5' : ''}`}>
-                                        <td className="py-2 px-2 text-white/90">{survey.nombre}</td>
-                                        <td className="py-2 px-2 text-white/90">{survey.telefono}</td>
-                                        <td className="py-2 px-2 text-white/90 text-xs">{survey.correo}</td>
-                                        <td className="py-2 px-2 text-white/90">{survey.empresa}</td>
-                                        <td className="py-2 px-2 text-white/90">{survey.cargo}</td>
-                                        <td className="py-2 px-2 text-white/70 text-xs">{formatDate(survey.createdAt)}</td>
+                                {currentRecords.map((r, index) => (
+                                    <tr key={r.id} className={`border-b border-white/10 ${index % 2 === 0 ? "bg-white/5" : ""}`}>
+                                        <td className="py-2 px-2 text-white/90">{r.phone}</td>
+                                        <td className="py-2 px-2">{renderProjectCell(r.projects?.goatHeart)}</td>
+                                        <td className="py-2 px-2">{renderProjectCell(r.projects?.goatMusic)}</td>
+                                        <td className="py-2 px-2">{renderProjectCell(r.projects?.goatBody)}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -179,7 +222,7 @@ export default function SurveyTable({ refreshTrigger = 0, className = "" }: Surv
                     {totalPages > 1 && (
                         <div className="flex justify-center items-center mt-6 gap-2">
                             <button
-                                onClick={() => handlePageChange(currentPage - 1)}
+                                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                                 disabled={currentPage === 1}
                                 className="px-3 py-1 bg-white/20 hover:bg-white/30 text-white rounded disabled:opacity-50 text-sm"
                             >
@@ -190,10 +233,8 @@ export default function SurveyTable({ refreshTrigger = 0, className = "" }: Surv
                                 {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                                     <button
                                         key={page}
-                                        onClick={() => handlePageChange(page)}
-                                        className={`px-2 py-1 rounded text-sm ${currentPage === page
-                                            ? "bg-blue-500 text-white"
-                                            : "bg-white/20 hover:bg-white/30 text-white"
+                                        onClick={() => setCurrentPage(page)}
+                                        className={`px-2 py-1 rounded text-sm ${currentPage === page ? "bg-blue-500 text-white" : "bg-white/20 hover:bg-white/30 text-white"
                                             }`}
                                     >
                                         {page}
@@ -202,7 +243,7 @@ export default function SurveyTable({ refreshTrigger = 0, className = "" }: Surv
                             </div>
 
                             <button
-                                onClick={() => handlePageChange(currentPage + 1)}
+                                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                                 disabled={currentPage === totalPages}
                                 className="px-3 py-1 bg-white/20 hover:bg-white/30 text-white rounded disabled:opacity-50 text-sm"
                             >
@@ -212,7 +253,8 @@ export default function SurveyTable({ refreshTrigger = 0, className = "" }: Surv
                     )}
 
                     <div className="text-center mt-4 text-white/60 text-xs">
-                        Mostrando {indexOfFirstRecord + 1} a {Math.min(indexOfLastRecord, surveys.length)} de {surveys.length} registros
+                        Mostrando {Math.min(indexOfFirstRecord + 1, rows.length)} a {Math.min(indexOfLastRecord, rows.length)} de{" "}
+                        {rows.length} registros
                     </div>
                 </>
             )}
