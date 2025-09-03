@@ -5,8 +5,9 @@ import { useEffect, useMemo, useState } from "react";
 import {
     Timestamp as FsTimestamp, // clase concreta para instanceof
 } from "firebase/firestore";
-import type { UserDoc, TypeProject } from "../survey/interfaces"; // <-- ajusta ruta
-import { usersService } from "../services/SurveyService";         // <-- ajusta ruta
+import type { UserDoc, TypeProject } from "../survey/interfaces";
+import UsersService from "../services/SurveyService";
+
 
 interface SurveyTableProps {
     refreshTrigger?: number;
@@ -32,7 +33,7 @@ export default function SurveyTable({ refreshTrigger = 0, className = "" }: Surv
         setLoading(true);
         setError("");
         try {
-            const [users, count] = await Promise.all([usersService.getAllUsers(), usersService.getUsersCount()]);
+            const [users, count] = await Promise.all([UsersService.getAllUsers(), UsersService.getUsersCount()]);
             setRows(users);
             setTotalCount(count);
             setCurrentPage(1);
