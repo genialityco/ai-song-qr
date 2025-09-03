@@ -1,15 +1,17 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import type { Timestamp } from "firebase/firestore";
+import type { Timestamp, FieldValue } from "firebase/firestore";
+import { useEffect, useMemo, useState } from "react";
+import {
+    Timestamp as FsTimestamp, // clase concreta para instanceof
+} from "firebase/firestore";
 import type { UserDoc, TypeProject } from "../survey/interfaces"; // <-- ajusta ruta
-import { usersService } from "../services/SurveyService";        // <-- ajusta ruta
+import { usersService } from "../services/SurveyService";         // <-- ajusta ruta
 
 interface SurveyTableProps {
-    refreshTrigger?: number; // Para forzar actualización externa
+    refreshTrigger?: number;
     className?: string;
 }
-
 type Row = UserDoc & { id: string };
 
 export default function SurveyTable({ refreshTrigger = 0, className = "" }: SurveyTableProps) {
@@ -23,18 +25,14 @@ export default function SurveyTable({ refreshTrigger = 0, className = "" }: Surv
     const recordsPerPage = 5;
 
     useEffect(() => {
-        loadData();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+        void loadData();
     }, [refreshTrigger]);
 
     const loadData = async () => {
         setLoading(true);
         setError("");
         try {
-            const [users, count] = await Promise.all([
-                usersService.getAllUsers(),
-                usersService.getUsersCount(),
-            ]);
+            const [users, count] = await Promise.all([usersService.getAllUsers(), usersService.getUsersCount()]);
             setRows(users);
             setTotalCount(count);
             setCurrentPage(1);
@@ -46,15 +44,19 @@ export default function SurveyTable({ refreshTrigger = 0, className = "" }: Surv
         }
     };
 
-    const formatTs = (ts?: Timestamp | import("firebase/firestore").FieldValue | null): string => {
-        if (!ts || typeof (ts as any).toDate !== "function") return "N/A";
-        return (ts as Timestamp).toDate().toLocaleString("es-CO", {
-            year: "numeric",
-            month: "short",
-            day: "2-digit",
-            hour: "2-digit",
-            minute: "2-digit",
-        });
+    const formatTs = (ts?: Timestamp | FieldValue | null): string => {
+        if (!ts) return "N/A";
+        if (ts instanceof FsTimestamp) {
+            return ts.toDate().toLocaleString("es-CO", {
+                year: "numeric",
+                month: "short",
+                day: "2-digit",
+                hour: "2-digit",
+                minute: "2-digit",
+            });
+        }
+        // Si es FieldValue (por ejemplo, serverTimestamp), no se puede mostrar fecha
+        return "N/A";
     };
 
     const shortUrl = (url?: string, max = 42) => {
@@ -62,11 +64,17 @@ export default function SurveyTable({ refreshTrigger = 0, className = "" }: Surv
         try {
             const u = new URL(url);
             const s = `${u.hostname}${u.pathname}`;
-            return s.length > max ? s.slice(0, max - 1) + "…" : s;
+            return s.length > max ? `${s.slice(0, max - 1)}…` : s;
         } catch {
-            return url.length > max ? url.slice(0, max - 1) + "…" : url;
+            return url.length > max ? `${url.slice(0, max - 1)}…` : url;
         }
     };
+
+    const csvEscape = (v: string) => `"${v.replace(/"/g, '""')}"`;
+
+    
+    const toIsoOrEmpty = (ts?: Timestamp | FieldValue): string =>
+        ts instanceof FsTimestamp ? ts.toDate().toISOString() : "";
 
     const exportToCSV = () => {
         if (rows.length === 0) return;
@@ -82,28 +90,25 @@ export default function SurveyTable({ refreshTrigger = 0, className = "" }: Surv
             "goatBody.url",
         ];
 
-        const line = (r: Row, key: keyof Row | string) => {
-            const get = (k: string): any =>
-                k.split(".").reduce<any>((acc, part) => (acc ? acc[part as keyof typeof acc] : undefined), r as any);
+        const rowsCsv = rows.map((r) => {
+            const gh = r.projects?.goatHeart;
+            const gm = r.projects?.goatMusic;
+            const gb = r.projects?.goatBody;
 
-            const v = typeof key === "string" ? get(key) : (r as any)[key];
-            if (v && typeof v.toDate === "function") return `"${v.toDate().toISOString()}"`;
-            if (typeof v === "string") return `"${v.replace(/"/g, '""')}"`;
-            return v != null ? String(v) : "";
-        };
+            const values: string[] = [
+                r.phone ?? "",
+                toIsoOrEmpty(r.LastUpdated),
+                toIsoOrEmpty(gh?.updatedAt),
+                gh?.url ?? "",
+                toIsoOrEmpty(gm?.updatedAt),
+                gm?.url ?? "",
+                toIsoOrEmpty(gb?.updatedAt),
+                gb?.url ?? "",
+            ];
 
-        const rowsCsv = rows.map((r) =>
-            [
-                line(r, "phone"),
-                line(r, "LastUpdated"),
-                line(r, "projects.goatHeart.updatedAt"),
-                line(r, "projects.goatHeart.url"),
-                line(r, "projects.goatMusic.updatedAt"),
-                line(r, "projects.goatMusic.url"),
-                line(r, "projects.goatBody.updatedAt"),
-                line(r, "projects.goatBody.url"),
-            ].join(",")
-        );
+            // Escapa solo strings; ya son strings todas
+            return values.map(csvEscape).join(",");
+        });
 
         const csv = [headers.join(","), ...rowsCsv].join("\n");
         const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -145,7 +150,7 @@ export default function SurveyTable({ refreshTrigger = 0, className = "" }: Surv
         return (
             <div className={`${className} bg-white/10 backdrop-blur-md rounded-2xl p-6`}>
                 <div className="text-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto"></div>
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto" />
                     <p className="mt-4 text-white/80">Cargando registros...</p>
                 </div>
             </div>
@@ -200,6 +205,7 @@ export default function SurveyTable({ refreshTrigger = 0, className = "" }: Surv
                             <thead>
                                 <tr className="border-b border-white/20">
                                     <th className="text-left py-3 px-2 font-semibold text-white/90">Phone</th>
+                                    <th className="text-left py-3 px-2 font-semibold text-white/90">LastUpdated</th>
                                     <th className="text-left py-3 px-2 font-semibold text-white/90">goatHeart</th>
                                     <th className="text-left py-3 px-2 font-semibold text-white/90">goatMusic</th>
                                     <th className="text-left py-3 px-2 font-semibold text-white/90">goatBody</th>
@@ -209,6 +215,7 @@ export default function SurveyTable({ refreshTrigger = 0, className = "" }: Surv
                                 {currentRecords.map((r, index) => (
                                     <tr key={r.id} className={`border-b border-white/10 ${index % 2 === 0 ? "bg-white/5" : ""}`}>
                                         <td className="py-2 px-2 text-white/90">{r.phone}</td>
+                                        <td className="py-2 px-2 text-white/70 text-xs">{formatTs(r.LastUpdated)}</td>
                                         <td className="py-2 px-2">{renderProjectCell(r.projects?.goatHeart)}</td>
                                         <td className="py-2 px-2">{renderProjectCell(r.projects?.goatMusic)}</td>
                                         <td className="py-2 px-2">{renderProjectCell(r.projects?.goatBody)}</td>
