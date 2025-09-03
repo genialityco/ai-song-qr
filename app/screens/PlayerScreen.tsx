@@ -40,21 +40,14 @@ export default function PlayerScreen({
   const audioCtxRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
+  const graphBuiltRef = useRef(false); // FIX: bandera para no recrear el grafo
   const [, setAnalyserReady] = useState(false);
 
-  // ✅ Estado listo si hay audio real
   const ready = !!audioUrl;
- 
-  // ⏱️ Intro (solo en !ready)
   const [, setShowIntro] = useState(true);
-
-  // ⏱️ Control de fases cuando ready = true
-  //   ready && !showQr  => Fase 1 (texto final + reproductor)
-  //   ready && showQr   => Fase 2 (pantalla QR)
   const [showQr, setShowQr] = useState(false);
   const hasSavedRef = useRef(false);
 
-  // URL encuesta para el QR
   const urlSurvey = (() => {
     if (!ready) return "";
 
@@ -84,10 +77,11 @@ export default function PlayerScreen({
     };
   }, []);
 
-  // Cambios de URL (stream -> final): mantener reproducción si estaba sonando
+  // Cambios de URL (stream -> final): NO destruimos el grafo; solo cambiamos el src
   useEffect(() => {
     const el = audioRef.current;
     if (!el) return;
+
     setAnalyserReady(false);
 
     const wasPlaying = !el.paused;
@@ -100,24 +94,23 @@ export default function PlayerScreen({
       if (wasPlaying && audioUrl) {
         try {
           el.currentTime = prevTime;
-        } catch {}
-        el.play().catch(() => {});
+        } catch { }
+        el.play().catch(() => { });
         setIsPlaying(true);
       } else {
         setIsPlaying(false);
       }
-    } catch {}
+    } catch { }
 
-    try {
-      sourceRef.current?.disconnect();
-      analyserRef.current?.disconnect();
-    } catch {}
-    sourceRef.current = null;
-    analyserRef.current = null;
-    setAnalyserReady(false);
+    // FIX: No desconectar ni poner a null source/analyser; eso rompe el contrato del WebAudio para <audio>
+    // sourceRef.current?.disconnect();
+    // analyserRef.current?.disconnect();
+    // sourceRef.current = null;
+    // analyserRef.current = null;
+    // setAnalyserReady(false);
   }, [audioUrl]);
 
-  // ⏱️ Intro en !ready: muestra ambos textos por 5s
+  // Intro en !ready: muestra ambos textos por 5s
   useEffect(() => {
     if (ready) return;
     setShowIntro(true);
@@ -127,7 +120,7 @@ export default function PlayerScreen({
 
   useEffect(() => {
     if (!isFinal || !audioUrl || hasSavedRef.current) return;
-    if (!phone) return; // solo guardamos si hay teléfono
+    if (!phone) return;
 
     (async () => {
       try {
@@ -148,35 +141,47 @@ export default function PlayerScreen({
   }, [isFinal, audioUrl, phone]);
 
   const ensureAudioGraph = async () => {
-    if (!audioRef.current) return;
+    const el = audioRef.current;
+    if (!el) return;
+
     if (!audioCtxRef.current) {
       const AC = window.AudioContext || (window as any).webkitAudioContext;
       audioCtxRef.current = new AC();
     }
-    if (audioCtxRef.current.state === "suspended") {
-      await audioCtxRef.current.resume().catch(() => {});
+    const ctx = audioCtxRef.current;
+
+    if (ctx.state === "suspended") {
+      try {
+        await ctx.resume();
+      } catch { }
     }
-    if (!sourceRef.current || !analyserRef.current) {
-      const ctx = audioCtxRef.current;
-      const src = ctx!.createMediaElementSource(audioRef.current);
-      const analyser = ctx!.createAnalyser();
+
+    // FIX: Crea los nodos una sola vez por <audio>
+    if (!sourceRef.current) {
+      sourceRef.current = ctx.createMediaElementSource(el);
+    }
+    if (!analyserRef.current) {
+      const analyser = ctx.createAnalyser();
       analyser.fftSize = 512;
-      src.connect(analyser);
-      analyser.connect(ctx!.destination);
-      sourceRef.current = src;
       analyserRef.current = analyser;
+    }
+
+    if (!graphBuiltRef.current) {
+      sourceRef.current.connect(analyserRef.current!);
+      analyserRef.current!.connect(ctx.destination);
+      graphBuiltRef.current = true;
       setAnalyserReady(true);
     }
   };
 
-  // 🔔 Al entrar en ready: reproducir audio, mostrar Fase 1 y pasar a QR a los 5s
+  // Al entrar en ready: reproducir audio, mostrar Fase 1 y pasar a QR a los 5s
   useEffect(() => {
     if (!ready) {
       setShowQr(false);
       return;
     }
 
-    setShowQr(false); // Fase 1 visible
+    setShowQr(false);
     let timer: number | undefined;
 
     (async () => {
@@ -185,16 +190,15 @@ export default function PlayerScreen({
         await audioRef.current?.play();
         setIsPlaying(true);
       } catch {
-        // Autoplay podría fallar por políticas del navegador; ignoramos el error.
+        // Autoplay puede fallar por políticas del navegador
       }
-      // Pasar a QR a los 5s
       timer = window.setTimeout(() => setShowQr(true), 5000);
     })();
 
     return () => {
       if (timer) clearTimeout(timer);
     };
-  }, [ready, audioUrl]);
+  }, [ready, audioUrl]); // está bien que dependa de audioUrl, pero no recrea nodos
 
   const toggle = async () => {
     if (!audioRef.current) return;
@@ -212,16 +216,19 @@ export default function PlayerScreen({
     }
   };
 
+  // Limpieza SOLO al desmontar el componente
   useEffect(() => {
     return () => {
       try {
+        // Desconectar está bien aquí porque el elemento se desmonta; no volveremos a crear otro source para el mismo elemento
         sourceRef.current?.disconnect();
         analyserRef.current?.disconnect();
         audioCtxRef.current?.close();
-      } catch {}
+      } catch { }
       sourceRef.current = null;
       analyserRef.current = null;
       audioCtxRef.current = null;
+      graphBuiltRef.current = false; // FIX
     };
   }, []);
 
@@ -236,7 +243,6 @@ export default function PlayerScreen({
           >
             <div className="w-full h-screen grid place-items-center">
               <div className="relative flex flex-col items-center justify-center gap-6 px-4">
-                {/* Texto de intro (arriba) */}
                 <img
                   src="/assets/TEXTO_REPRODUCTOR.svg"
                   alt="Texto"
@@ -251,7 +257,6 @@ export default function PlayerScreen({
                   decoding="async"
                   fetchPriority="high"
                 />
-                {/* Reproductor */}
                 <div
                   className="relative"
                   style={{
@@ -280,7 +285,6 @@ export default function PlayerScreen({
                     }}
                   />
 
-                  {/* Waveform */}
                   <div
                     className="absolute z-20 pointer-events-none"
                     style={{
@@ -295,7 +299,6 @@ export default function PlayerScreen({
                     <Waveform analyser={analyserRef.current} active={ready} />
                   </div>
 
-                  {/* Botón play/pause */}
                   <button
                     onClick={toggle}
                     className="absolute z-10 rounded-full shadow-lg transition active:scale-95 disabled:opacity-50"
@@ -330,15 +333,14 @@ export default function PlayerScreen({
                   </button>
                 </div>
 
-                {/* Caja de texto de intro (abajo) */}
                 <img
                   src="/assets/PANTALLA/TEXT/TEXTOS-02.svg"
                   alt="Caja de texto"
                   className="block transition-opacity duration-700"
                   style={{ width: "min(480px,80vw)", height: "auto" }}
                   draggable={false}
-                  loading="eager" // 👈 hint
-                  decoding="async" // 👈 hint
+                  loading="eager"
+                  decoding="async"
                 />
               </div>
             </div>
@@ -355,7 +357,6 @@ export default function PlayerScreen({
           >
             <div className="w-full h-screen grid place-items-center">
               <div className="flex flex-col items-center justify-center gap-6 px-4">
-                {/* Reproductor */}
                 <div
                   className="relative"
                   style={{
@@ -432,16 +433,15 @@ export default function PlayerScreen({
                   </button>
                 </div>
 
-                {/* ✅ Texto final visible en Fase 1 */}
                 <img
                   src="/assets/PANTALLA/IMG/CAJA_TEXTO_01.png"
                   alt="Texto"
                   className="block"
                   style={{ width: "min(46vw,620px)", height: "auto" }}
                   draggable={false}
-                  loading="eager" // 👈 hint
-                  decoding="async" // 👈 hint
-                  fetchPriority="high" // 👈 hint
+                  loading="eager"
+                  decoding="async"
+                  fetchPriority="high"
                 />
               </div>
             </div>
@@ -470,7 +470,6 @@ export default function PlayerScreen({
                   backgroundPosition: "center",
                 }}
               >
-                {/* QR */}
                 <div
                   className="absolute z-30 rounded-md bg-white p-1"
                   style={{
@@ -488,7 +487,6 @@ export default function PlayerScreen({
                   />
                 </div>
 
-                {/* Waveform */}
                 <div
                   className="absolute z-20 pointer-events-none"
                   style={{
@@ -503,7 +501,6 @@ export default function PlayerScreen({
                   <Waveform analyser={analyserRef.current} active={ready} />
                 </div>
 
-                {/* Botones (02 - 01 - 03) */}
                 <div
                   className="absolute z-30 left-1/2 -translate-x-1/2 flex items-center gap-4"
                   style={{ top: "84%" }}
