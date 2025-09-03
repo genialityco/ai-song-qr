@@ -52,22 +52,20 @@ export default function PlayerScreen({
   //   ready && !showQr  => Fase 1 (texto final + reproductor)
   //   ready && showQr   => Fase 2 (pantalla QR)
   const [showQr, setShowQr] = useState(false);
-
   const hasSavedRef = useRef(false);
 
   // URL encuesta para el QR
-  const urlSurvey = (() => {
-    if (!ready) return "";
+  // URL de descarga para el QR
+  const qrDownloadUrl = (() => {
+    if (!ready || !audioUrl) return "";
 
     const qs = new URLSearchParams();
-    qs.set("src", audioUrl!);
-    qs.set("filename", `${slugify(title)}.mp3`);
-    qs.set("final", isFinal ? "1" : "0");
-    if (taskId) qs.set("taskId", taskId);
-    if (phone) qs.set("phone", phone);
+    qs.set("src", audioUrl);                      // URL real del MP3 (Firebase/CDN)
+    qs.set("filename", `${slugify(title)}.mp3`);  // nombre sugerido
 
-    return `${BASE_URL}/survey?${qs.toString()}`;
+    return `${BASE_URL}/api/download?${qs.toString()}`;
   })();
+
 
   useEffect(() => {
     const el = audioRef.current;
@@ -101,18 +99,18 @@ export default function PlayerScreen({
       if (wasPlaying && audioUrl) {
         try {
           el.currentTime = prevTime;
-        } catch {}
-        el.play().catch(() => {});
+        } catch { }
+        el.play().catch(() => { });
         setIsPlaying(true);
       } else {
         setIsPlaying(false);
       }
-    } catch {}
+    } catch { }
 
     try {
       sourceRef.current?.disconnect();
       analyserRef.current?.disconnect();
-    } catch {}
+    } catch { }
     sourceRef.current = null;
     analyserRef.current = null;
     setAnalyserReady(false);
@@ -155,7 +153,7 @@ export default function PlayerScreen({
       audioCtxRef.current = new AC();
     }
     if (audioCtxRef.current.state === "suspended") {
-      await audioCtxRef.current.resume().catch(() => {});
+      await audioCtxRef.current.resume().catch(() => { });
     }
     if (!sourceRef.current || !analyserRef.current) {
       const ctx = audioCtxRef.current;
@@ -219,7 +217,7 @@ export default function PlayerScreen({
         sourceRef.current?.disconnect();
         analyserRef.current?.disconnect();
         audioCtxRef.current?.close();
-      } catch {}
+      } catch { }
       sourceRef.current = null;
       analyserRef.current = null;
       audioCtxRef.current = null;
@@ -461,7 +459,7 @@ export default function PlayerScreen({
               <div
                 className="relative"
                 style={{
-                  width: "380px",
+                  width: "400px",
                   height: "710px",
                   borderRadius: "45px",
                   overflow: "hidden",
@@ -481,11 +479,11 @@ export default function PlayerScreen({
                   }}
                 >
                   <QRCodeCanvas
-                    value={urlSurvey || BASE_URL}
-                    size={220}
+                    value={qrDownloadUrl || BASE_URL}
+                    size={250}
                     bgColor="#ffffff"
                     fgColor="#000000"
-                    level="H"
+                    level="M"
                   />
                 </div>
 
