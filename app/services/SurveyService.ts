@@ -86,7 +86,7 @@ class UsersService {
 
     // 1) Intento ordenar en servidor por LastUpdated
     try {
-      const q1 = query(coll, orderBy("LastUpdated", "desc"));
+      const q1 = query(coll, orderBy("lastUpdated", "desc"));
       const snap1 = await getDocs(q1);
       if (!snap1.empty) {
         return snap1.docs.map(mapUserDoc);
