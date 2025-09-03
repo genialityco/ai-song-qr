@@ -72,7 +72,7 @@ export default function SurveyTable({ refreshTrigger = 0, className = "" }: Surv
 
     const csvEscape = (v: string) => `"${v.replace(/"/g, '""')}"`;
 
-    
+
     const toIsoOrEmpty = (ts?: Timestamp | FieldValue): string =>
         ts instanceof FsTimestamp ? ts.toDate().toISOString() : "";
 
@@ -205,7 +205,6 @@ export default function SurveyTable({ refreshTrigger = 0, className = "" }: Surv
                             <thead>
                                 <tr className="border-b border-white/20">
                                     <th className="text-left py-3 px-2 font-semibold text-white/90">Phone</th>
-                                    <th className="text-left py-3 px-2 font-semibold text-white/90">LastUpdated</th>
                                     <th className="text-left py-3 px-2 font-semibold text-white/90">goatHeart</th>
                                     <th className="text-left py-3 px-2 font-semibold text-white/90">goatMusic</th>
                                     <th className="text-left py-3 px-2 font-semibold text-white/90">goatBody</th>
@@ -215,7 +214,6 @@ export default function SurveyTable({ refreshTrigger = 0, className = "" }: Surv
                                 {currentRecords.map((r, index) => (
                                     <tr key={r.id} className={`border-b border-white/10 ${index % 2 === 0 ? "bg-white/5" : ""}`}>
                                         <td className="py-2 px-2 text-white/90">{r.phone}</td>
-                                        <td className="py-2 px-2 text-white/70 text-xs">{formatTs(r.LastUpdated)}</td>
                                         <td className="py-2 px-2">{renderProjectCell(r.projects?.goatHeart)}</td>
                                         <td className="py-2 px-2">{renderProjectCell(r.projects?.goatMusic)}</td>
                                         <td className="py-2 px-2">{renderProjectCell(r.projects?.goatBody)}</td>
