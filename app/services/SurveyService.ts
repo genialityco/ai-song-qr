@@ -72,7 +72,6 @@ function mapSnap(docSnap: QueryDocumentSnapshot<DocumentData>): Survey {
   if (data.status) survey.status = data.status as Survey["status"];
 
   if (data.createdAt) {
-    // Soporta Timestamp y number
     const v = (data.createdAt as unknown) as { toMillis?: () => number } | number;
     survey.createdAt = typeof v === "number" ? v : v?.toMillis?.();
   }
@@ -107,8 +106,6 @@ export async function saveMedia(body: SaveMediaBody): Promise<SaveMediaResponse>
 /** Lista los N últimos surveys (ordenados por updatedAt desc) */
 export async function listSurveys(limitN = 20): Promise<Survey[]> {
   const colRef = collection(db, SURVEYS_COLLECTION);
-
-  // Si no tienes updatedAt en todos tus docs, crea un índice o ajusta el orderBy
   const q: Query<DocumentData> = query(colRef, orderBy("updatedAt", "desc"), limit(limitN));
   const snap = await getDocs(q);
   return snap.docs.map(mapSnap);
@@ -157,6 +154,17 @@ export function onLatestSurveyByPhone(
   );
 }
 
+/** Ref directo a un doc (útil para updates puntuales) */
 export function getSurveyDocRef(id: string) {
   return doc(getFirestore(), SURVEYS_COLLECTION, id);
 }
+
+/** ===== Default export para compatibilidad con `import UsersService from ...` ===== */
+const UsersService = {
+  saveMedia,
+  listSurveys,
+  getLatestSurveyByPhone,
+  onLatestSurveyByPhone,
+  getSurveyDocRef,
+};
+export default UsersService;

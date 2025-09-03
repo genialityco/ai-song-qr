@@ -33,9 +33,15 @@ export default function SurveyTable({ refreshTrigger = 0, className = "" }: Surv
         setLoading(true);
         setError("");
         try {
-            const [users, count] = await Promise.all([UsersService.getAllUsers(), UsersService.getUsersCount()]);
-            setRows(users);
-            setTotalCount(count);
+            const users = await UsersService.listSurveys(100); // Puedes ajustar el límite si lo deseas
+            // Mapear los datos para que tengan la forma de Row
+            const mappedRows: Row[] = users.map((u) => ({
+                ...u,
+                LastUpdated: (u as any).LastUpdated ?? null,
+                projects: (u as any).projects ?? {},
+            }));
+            setRows(mappedRows);
+            setTotalCount(users.length);
             setCurrentPage(1);
         } catch (err) {
             const msg = err instanceof Error ? err.message : "Error al cargar los usuarios";
