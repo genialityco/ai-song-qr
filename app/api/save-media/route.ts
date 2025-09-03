@@ -10,12 +10,35 @@ const CF_BASE =
 const ALLOWED_PROJECTS = new Set(["goatHeart", "goatMusic", "goatBody"]);
 const normalizePhone = (s: string) => String(s || "").replace(/[^\d]/g, "");
 
-async function readJson(req: NextRequest) {
+// --- Tipos y type-guards ---
+type AllowedProject = "goatHeart" | "goatMusic" | "goatBody";
+
+interface SaveMediaBody {
+  phone: string;
+  project: AllowedProject | string; // validamos abajo contra el Set
+  originalUrl: string;
+}
+
+function isSaveMediaBody(x: unknown): x is SaveMediaBody {
+  if (typeof x !== "object" || x === null) return false;
+  const o = x as Record<string, unknown>;
+  return (
+    typeof o.phone === "string" &&
+    typeof o.project === "string" &&
+    typeof o.originalUrl === "string"
+  );
+}
+
+async function readJson(req: NextRequest): Promise<unknown> {
   try {
     return await req.json();
   } catch {
     const t = await req.text();
-    try { return JSON.parse(t); } catch { return {}; }
+    try {
+      return JSON.parse(t) as unknown;
+    } catch {
+      return {};
+    }
   }
 }
 
@@ -29,14 +52,16 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { phone, project, originalUrl } = await readJson(req);
+    const bodyUnknown = await readJson(req);
 
-    if (!phone || !project || !originalUrl) {
+    if (!isSaveMediaBody(bodyUnknown)) {
       return NextResponse.json(
         { error: "phone, project y originalUrl son obligatorios" },
         { status: 400 }
       );
     }
+
+    const { phone, project, originalUrl } = bodyUnknown;
 
     const cleanPhone = normalizePhone(phone);
     if (!cleanPhone) {
@@ -45,14 +70,21 @@ export async function POST(req: NextRequest) {
     if (!ALLOWED_PROJECTS.has(project)) {
       return NextResponse.json({ error: "project inválido" }, { status: 400 });
     }
+
     // valida URL pública http(s)
     try {
       const u = new URL(originalUrl);
       if (!/^https?:$/i.test(u.protocol)) {
-        return NextResponse.json({ error: "originalUrl debe ser http(s)" }, { status: 400 });
+        return NextResponse.json(
+          { error: "originalUrl debe ser http(s)" },
+          { status: 400 }
+        );
       }
     } catch {
-      return NextResponse.json({ error: "originalUrl inválida" }, { status: 400 });
+      return NextResponse.json(
+        { error: "originalUrl inválida" },
+        { status: 400 }
+      );
     }
 
     console.log("[save-media] → ingest", {
@@ -61,7 +93,7 @@ export async function POST(req: NextRequest) {
       phone: cleanPhone,
       url: originalUrl,
     });
-    
+
     const upstream = await fetch(`${CF_BASE}/ingest`, {
       method: "POST",
       headers: {
@@ -73,22 +105,32 @@ export async function POST(req: NextRequest) {
     });
 
     const raw = await upstream.text();
-    let json: any; try { json = JSON.parse(raw); } catch { json = { raw }; }
+
+    // Parse seguro sin `any`
+    let data: unknown;
+    try {
+      data = JSON.parse(raw) as unknown;
+    } catch {
+      data = { raw };
+    }
 
     if (!upstream.ok) {
-      console.error("[save-media] upstream error:", upstream.status, raw?.slice(0, 500));
+      console.error(
+        "[save-media] upstream error:",
+        upstream.status,
+        raw.slice(0, 500)
+      );
       return NextResponse.json(
-        { error: "ingest failed", status: upstream.status, data: json },
+        { error: "ingest failed", status: upstream.status, data },
         { status: upstream.status }
       );
     }
 
-    return NextResponse.json(json, { status: upstream.status || 201 });
-  } catch (err: any) {
-    console.error("[save-media] exception:", err?.message || err);
-    return NextResponse.json(
-      { error: err?.message || "Unexpected server error" },
-      { status: 500 }
-    );
+    // `data` es `unknown`; NextResponse.json acepta valores serializables
+    return NextResponse.json(data, { status: upstream.status || 201 });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("[save-media] exception:", message);
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
