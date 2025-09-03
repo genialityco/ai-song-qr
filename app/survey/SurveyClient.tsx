@@ -24,14 +24,14 @@ function MiniPlayer({ src }: { src: string | null }) {
       if (wasPlaying && src) {
         try {
           el.currentTime = prevTime;
-        } catch {}
+        } catch { }
         el.play()
           .then(() => setIsPlaying(true))
           .catch(() => setIsPlaying(false));
       } else {
         setIsPlaying(false);
       }
-    } catch {}
+    } catch { }
   }, [src]);
 
   useEffect(() => {
@@ -66,7 +66,7 @@ function MiniPlayer({ src }: { src: string | null }) {
       } else {
         el.pause();
       }
-    } catch {}
+    } catch { }
   };
 
   const onSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -74,7 +74,7 @@ function MiniPlayer({ src }: { src: string | null }) {
     if (!el) return;
     try {
       el.currentTime = Number(e.target.value);
-    } catch {}
+    } catch { }
   };
 
   const mmss = (t: number) => {
@@ -141,6 +141,8 @@ export default function SurveyClient() {
   const [taskStatus, setTaskStatus] = useState<string>(
     isFinal ? "SUCCESS" : "PENDING"
   );
+
+
   const [enviado, setEnviado] = useState(false);
   const [showParticipants, setShowParticipants] = useState(false);
   const [tableRefreshTrigger, setTableRefreshTrigger] = useState(0);
@@ -224,7 +226,7 @@ export default function SurveyClient() {
         } else if (data?.track?.streamAudioUrl && !audioUrl) {
           setAudioUrl(data.track.streamAudioUrl);
         }
-      } catch {}
+      } catch { }
     }, 6000);
 
     const timeout = setTimeout(() => clearInterval(interval), 10 * 60 * 1000);
@@ -272,43 +274,23 @@ export default function SurveyClient() {
             </div>
           )}
         </div>
-
-        {!enviado ? (
-          <div className="bg-white/10 backdrop-blur-md p-6 rounded-2xl shadow-lg">
-            <SurveyForm
-              onSuccess={() => {
-                setEnviado(true);
-                setTableRefreshTrigger((prev) => prev + 1);
-              }}
-            />
-          </div>
+        {isFinal ? (
+          <>
+            <p>Tu canción está lista:</p>
+            <button
+              onClick={downloadAudio}
+              className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg font-semibold"
+            >
+              Descargar {title ? `"${title}"` : "Canción"}
+            </button>
+          </>
         ) : (
-          <div className="bg-white/10 backdrop-blur-md p-6 rounded-2xl shadow-lg">
-            <div className="flex justify-center items-center flex-col text-center space-y-4">
-              <h2 className="text-2xl font-bold">
-                ¡Gracias por llenar la encuesta!
-              </h2>
-
-              {isFinal ? (
-                <>
-                  <p>Tu canción está lista:</p>
-                  <button
-                    onClick={downloadAudio}
-                    className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg font-semibold"
-                  >
-                    Descargar {title ? `"${title}"` : "Canción"}
-                  </button>
-                </>
-              ) : (
-                <>
-                  <p>Tu canción sigue generándose…</p>
-                  <div className="text-xs opacity-80">
-                    Estado: <b>{getStatusText()}</b>
-                  </div>
-                </>
-              )}
+          <>
+            <p>Tu canción sigue generándose…</p>
+            <div className="text-xs opacity-80">
+              Estado: <b>{getStatusText()}</b>
             </div>
-          </div>
+          </>
         )}
       </div>
     </div>
