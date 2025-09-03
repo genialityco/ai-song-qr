@@ -303,6 +303,7 @@ export default function Page() {
             setStep("start");
             clearPhone(); 
           }}
+          phone={phone} 
         />
       )}
     </>

@@ -25,12 +25,14 @@ export default function PlayerScreen({
   isFinal,
   taskId,
   onRestart,
+  phone,
 }: {
   audioUrl: string | null;
   title: string;
   isFinal: boolean;
   taskId?: string | null;
   onRestart: () => void;
+  phone: string;
 }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -51,14 +53,21 @@ export default function PlayerScreen({
   //   ready && showQr   => Fase 2 (pantalla QR)
   const [showQr, setShowQr] = useState(false);
 
+  const hasSavedRef = useRef(false);
+
   // URL encuesta para el QR
-  const urlSurvey = ready
-    ? `${BASE_URL}/survey?src=${encodeURIComponent(
-        audioUrl!
-      )}&filename=${encodeURIComponent(`${slugify(title)}.mp3`)}&final=${
-        isFinal ? "1" : "0"
-      }${taskId ? `&taskId=${encodeURIComponent(taskId)}` : ""}`
-    : "";
+  const urlSurvey = (() => {
+    if (!ready) return "";
+
+    const qs = new URLSearchParams();
+    qs.set("src", audioUrl!);
+    qs.set("filename", `${slugify(title)}.mp3`);
+    qs.set("final", isFinal ? "1" : "0");
+    if (taskId) qs.set("taskId", taskId);
+    if (phone) qs.set("phone", phone);
+
+    return `${BASE_URL}/survey?${qs.toString()}`;
+  })();
 
   useEffect(() => {
     const el = audioRef.current;
@@ -116,6 +125,28 @@ export default function PlayerScreen({
     const t = setTimeout(() => setShowIntro(false), 5000);
     return () => clearTimeout(t);
   }, [ready, audioUrl]);
+
+  useEffect(() => {
+    if (!isFinal || !audioUrl || hasSavedRef.current) return;
+    if (!phone) return; // solo guardamos si hay teléfono
+
+    (async () => {
+      try {
+        await fetch("/api/save-media", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            phone,
+            project: "goatMusic",
+            originalUrl: audioUrl,
+          }),
+        });
+        hasSavedRef.current = true;
+      } catch {
+        // no bloquear UX
+      }
+    })();
+  }, [isFinal, audioUrl, phone]);
 
   const ensureAudioGraph = async () => {
     if (!audioRef.current) return;

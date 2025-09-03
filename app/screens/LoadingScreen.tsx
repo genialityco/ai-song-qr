@@ -4,108 +4,6 @@
 
 import { useEffect, useRef, useState } from "react";
 
-/** ============================ Waveform ============================ */
-/** Waveform con placeholder cuando no hay analyser */
-// function Waveform({
-//   analyser,
-//   active,
-// }: {
-//   analyser: AnalyserNode | null;
-//   active: boolean;
-// }) {
-//   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-//   const rafRef = useRef<number | null>(null);
-
-//   useEffect(() => {
-//     const canvas = canvasRef.current;
-//     if (!canvas) return;
-//     const cctx = canvas.getContext("2d");
-//     if (!cctx) return;
-
-//     let cleanup: (() => void) | null = null;
-
-//     if (active && analyser) {
-//       const bufferLength = analyser.frequencyBinCount;
-//       const dataArray = new Uint8Array(bufferLength);
-//       const draw = () => {
-//         const w = canvas.width;
-//         const h = canvas.height;
-//         cctx.clearRect(0, 0, w, h);
-//         analyser.getByteFrequencyData(dataArray);
-
-//         const bars = 48;
-//         const step = Math.max(1, Math.floor(bufferLength / bars));
-//         const barWidth = w / bars;
-
-//         for (let i = 0; i < bars; i++) {
-//           const v = dataArray[i * step] / 255;
-//           const barHeight = Math.max(2, v * (h - 4));
-//           const x = i * barWidth;
-//           const y = (h - barHeight) / 2;
-//           cctx.globalAlpha = 0.9;
-//           cctx.fillStyle = "#ffffff";
-//           cctx.fillRect(x + 1, y, barWidth - 2, barHeight);
-//         }
-//         rafRef.current = requestAnimationFrame(draw);
-//       };
-//       draw();
-//       cleanup = () => {
-//         if (rafRef.current) cancelAnimationFrame(rafRef.current);
-//       };
-//     } else {
-//       // Placeholder animado
-//       let t = 0;
-//       const drawPlaceholder = () => {
-//         const w = canvas.width;
-//         const h = canvas.height;
-//         cctx.clearRect(0, 0, w, h);
-//         const bars = 32;
-//         const barWidth = w / bars;
-//         for (let i = 0; i < bars; i++) {
-//           const v = (Math.sin(t + i * 0.4) + 1) / 2;
-//           const barHeight = 4 + v * (h - 8);
-//           const x = i * barWidth;
-//           const y = (h - barHeight) / 2;
-//           cctx.globalAlpha = 0.6;
-//           cctx.fillStyle = "#ffffff";
-//           cctx.fillRect(x + 1, y, barWidth - 2, barHeight);
-//         }
-//         t += 0.08;
-//         rafRef.current = requestAnimationFrame(drawPlaceholder);
-//       };
-//       drawPlaceholder();
-//       cleanup = () => {
-//         if (rafRef.current) cancelAnimationFrame(rafRef.current);
-//       };
-//     }
-//     return () => cleanup?.();
-//   }, [active, analyser]);
-
-//   // HiDPI
-//   useEffect(() => {
-//     const resize = () => {
-//       const canvas = canvasRef.current;
-//       if (!canvas) return;
-//       const dpr = Math.max(1, window.devicePixelRatio || 1);
-//       const rect = canvas.getBoundingClientRect();
-//       canvas.width = Math.round(rect.width * dpr);
-//       canvas.height = Math.round(rect.height * dpr);
-//       const cctx = canvas.getContext("2d");
-//       cctx?.setTransform(dpr, 0, 0, dpr, 0, 0);
-//     };
-//     resize();
-//     window.addEventListener("resize", resize);
-//     return () => window.removeEventListener("resize", resize);
-//   }, []);
-
-//   return (
-//     <canvas
-//       ref={canvasRef}
-//       className="w-full h-full [image-rendering:pixelated]"
-//     />
-//   );
-// }
-
 /** ======================= MobileAutoCarousel ======================= */
 /** Carrusel con crossfade + zoom + slide, pensado para portrait */
 function MobileAutoCarousel({
@@ -267,17 +165,6 @@ export default function LoadingScreen({
     }
   };
 
-  // const handleActivate = async () => {
-  //   try {
-  //     await ensureAudioGraph();
-  //     await audioRef.current?.play();
-  //     setPlayState("playing");
-  //     setAudioReady(true);
-  //   } catch {
-  //     setPlayState("error");
-  //   }
-  // };
-
   useEffect(() => {
     return () => {
       try {
@@ -290,25 +177,6 @@ export default function LoadingScreen({
       audioCtxRef.current = null;
     };
   }, []);
-
-  // const pill = (() => {
-  //   switch (playState) {
-  //     case "playing":
-  //       return "Reproduciendo…";
-  //     case "loading":
-  //       return "Cargando audio…";
-  //     case "waiting":
-  //       return "Generando y reproduciendo...";
-  //     case "blocked":
-  //       return "Autoplay bloqueado";
-  //     case "ended":
-  //       return "Finalizado";
-  //     case "error":
-  //       return "Error de reproducción";
-  //     default:
-  //       return "Listo";
-  //   }
-  // })();
 
   return (
     <div className="w-full h-[100svh] relative text-white flex flex-col overflow-hidden">
@@ -378,55 +246,6 @@ export default function LoadingScreen({
             />
           </div>
         </div>
-
-        {/* Tarjeta de streaming */}
-        {/* {hasStream && (
-          <div className="w-full max-w-[22rem] md:max-w-3xl mt-4 md:mt-6">
-            <div className="relative h-14 md:h-16 w-full rounded-xl bg-white/10 border border-white/20 overflow-hidden">
-              <div className="absolute inset-0 px-3 md:px-4 flex items-center gap-3 md:gap-4">
-                {playState === "blocked" ? (
-                  <button
-                    onClick={handleActivate}
-                    className="px-3 py-1 rounded bg-white/15 hover:bg-white/25 text-xs md:text-sm"
-                    title="Activar audio"
-                  >
-                    Activar audio ▶
-                  </button>
-                ) : (
-                  <span className="text-[11px] md:text-xs opacity-80 truncate">
-                    {pill}
-                  </span>
-                )}
-                <div className="flex-1 h-7 md:h-8">
-                  <Waveform
-                    analyser={analyserRef.current}
-                    active={audioReady && !!analyserRef.current}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <audio
-              ref={audioRef}
-              className="hidden"
-              src={streamUrl ?? undefined}
-              playsInline
-              preload="auto"
-              crossOrigin="anonymous"
-            />
-          </div>
-        )} */}
-
-        {/* Botón cancelar (opcional)
-        <div className="mt-8 pb-8">
-          <button
-            onClick={onCancel}
-            className="px-6 py-2 rounded bg-white/10 hover:bg-white/20 transition"
-          >
-            Cancelar
-          </button>
-        </div>
-        */}
       </main>
     </div>
   );

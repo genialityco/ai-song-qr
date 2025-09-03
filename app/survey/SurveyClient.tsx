@@ -22,12 +22,16 @@ function MiniPlayer({ src }: { src: string | null }) {
       el.src = src || "";
       if (src) el.load();
       if (wasPlaying && src) {
-        try { el.currentTime = prevTime; } catch { }
-        el.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+        try {
+          el.currentTime = prevTime;
+        } catch {}
+        el.play()
+          .then(() => setIsPlaying(true))
+          .catch(() => setIsPlaying(false));
       } else {
         setIsPlaying(false);
       }
-    } catch { }
+    } catch {}
   }, [src]);
 
   useEffect(() => {
@@ -39,7 +43,7 @@ function MiniPlayer({ src }: { src: string | null }) {
       pause: () => setIsPlaying(false),
       ended: () => setIsPlaying(false),
       timeupdate: () => setPos(el.currentTime),
-      loadedmetadata: () => setDur(el.duration || 0)
+      loadedmetadata: () => setDur(el.duration || 0),
     };
 
     Object.entries(handlers).forEach(([event, handler]) => {
@@ -62,7 +66,7 @@ function MiniPlayer({ src }: { src: string | null }) {
       } else {
         el.pause();
       }
-    } catch { }
+    } catch {}
   };
 
   const onSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -70,7 +74,7 @@ function MiniPlayer({ src }: { src: string | null }) {
     if (!el) return;
     try {
       el.currentTime = Number(e.target.value);
-    } catch { }
+    } catch {}
   };
 
   const mmss = (t: number) => {
@@ -115,31 +119,87 @@ function MiniPlayer({ src }: { src: string | null }) {
           </div>
         </div>
       </div>
-      <audio ref={audioRef} className="hidden" src={src ?? undefined} preload="auto" playsInline />
+      <audio
+        ref={audioRef}
+        className="hidden"
+        src={src ?? undefined}
+        preload="auto"
+        playsInline
+      />
     </div>
   );
 }
 
 export default function SurveyClient() {
   const searchParams = useSearchParams();
-  const [audioUrl, setAudioUrl] = useState<string>(searchParams.get("src") || "");
-  const [isFinal, setIsFinal] = useState<boolean>((searchParams.get("final") || "0") === "1");
-  const [taskStatus, setTaskStatus] = useState<string>(isFinal ? "SUCCESS" : "PENDING");
+  const [audioUrl, setAudioUrl] = useState<string>(
+    searchParams.get("src") || ""
+  );
+  const [isFinal, setIsFinal] = useState<boolean>(
+    (searchParams.get("final") || "0") === "1"
+  );
+  const [taskStatus, setTaskStatus] = useState<string>(
+    isFinal ? "SUCCESS" : "PENDING"
+  );
   const [enviado, setEnviado] = useState(false);
   const [showParticipants, setShowParticipants] = useState(false);
   const [tableRefreshTrigger, setTableRefreshTrigger] = useState(0);
 
   const taskId = searchParams.get("taskId");
   const title = searchParams.get("filename");
-  const publicBase = typeof window !== "undefined" ? window.location.origin : "";
+  const publicBase =
+    typeof window !== "undefined" ? window.location.origin : "";
 
   const getDownloadUrl = useMemo(() => {
     if (!audioUrl || !isFinal) return "";
-    const filename = (title || "cancion").toLowerCase()
-      .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "");
-    return `${publicBase}/api/download?src=${encodeURIComponent(audioUrl)}&filename=${encodeURIComponent(`${filename}.mp3`)}`;
+    const filename = (title || "cancion")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)+/g, "");
+    return `${publicBase}/api/download?src=${encodeURIComponent(
+      audioUrl
+    )}&filename=${encodeURIComponent(`${filename}.mp3`)}`;
   }, [audioUrl, title, publicBase, isFinal]);
+
+  const phoneFromQr = searchParams.get("phone") || "";
+  const [phone, setPhone] = useState<string>(() => {
+    if (phoneFromQr) return phoneFromQr;
+    if (typeof window !== "undefined")
+      return localStorage.getItem("userPhone") || "";
+    return "";
+  });
+  useEffect(() => {
+    if (phoneFromQr && typeof window !== "undefined") {
+      localStorage.setItem("userPhone", phoneFromQr);
+      setPhone(phoneFromQr);
+    }
+  }, [phoneFromQr]);
+
+  const hasSavedRef = useRef(false);
+
+  useEffect(() => {
+    if (!isFinal || !audioUrl || hasSavedRef.current) return;
+    if (!phone) return;
+
+    (async () => {
+      try {
+        await fetch("/api/save-media", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            phone,
+            project: "goatMusic",
+            originalUrl: audioUrl,
+          }),
+        });
+        hasSavedRef.current = true;
+      } catch {
+        // ignora errores transitorios
+      }
+    })();
+  }, [isFinal, audioUrl, phone]);
 
   // Polling para el taskId
   useEffect(() => {
@@ -147,7 +207,10 @@ export default function SurveyClient() {
 
     const interval = setInterval(async () => {
       try {
-        const r = await fetch(`/api/get-task?taskId=${encodeURIComponent(taskId)}`, { cache: "no-store" });
+        const r = await fetch(
+          `/api/get-task?taskId=${encodeURIComponent(taskId)}`,
+          { cache: "no-store" }
+        );
         const data = await r.json();
 
         if (!r.ok) return;
@@ -161,11 +224,14 @@ export default function SurveyClient() {
         } else if (data?.track?.streamAudioUrl && !audioUrl) {
           setAudioUrl(data.track.streamAudioUrl);
         }
-      } catch { }
+      } catch {}
     }, 6000);
 
     const timeout = setTimeout(() => clearInterval(interval), 10 * 60 * 1000);
-    return () => { clearInterval(interval); clearTimeout(timeout); };
+    return () => {
+      clearInterval(interval);
+      clearTimeout(timeout);
+    };
   }, [taskId, isFinal, audioUrl]);
 
   const downloadAudio = () => {
@@ -183,10 +249,10 @@ export default function SurveyClient() {
   const getStatusText = () => {
     if (isFinal) return "¡Lista para descargar!";
     const statusMap: Record<string, string> = {
-      "PENDING": "Generando letra…",
-      "TEXT_SUCCESS": "Generando canción…",
-      "PROCESSING": "Procesando…",
-      "WAITING": "Procesando…"
+      PENDING: "Generando letra…",
+      TEXT_SUCCESS: "Generando canción…",
+      PROCESSING: "Procesando…",
+      WAITING: "Procesando…",
     };
     return statusMap[taskStatus] || "Generando…";
   };
@@ -195,7 +261,10 @@ export default function SurveyClient() {
     <div className="w-full min-h-screen relative flex flex-col items-center justify-start text-white overflow-hidden py-6">
       <div className="absolute inset-0 bg-black/40 z-0" />
       <div className="relative z-10 w-full max-w-4xl px-4 space-y-6">
-        <div className="bg-white/10 backdrop-blur-md p-6 rounded-2xl shadow-lg" style={{marginTop: "30%"}}>
+        <div
+          className="bg-white/10 backdrop-blur-md p-6 rounded-2xl shadow-lg"
+          style={{ marginTop: "30%" }}
+        >
           <MiniPlayer src={audioUrl || null} />
           {!isFinal && (
             <div className="mt-2 text-xs text-white/80 text-center">
@@ -206,12 +275,19 @@ export default function SurveyClient() {
 
         {!enviado ? (
           <div className="bg-white/10 backdrop-blur-md p-6 rounded-2xl shadow-lg">
-            <SurveyForm onSuccess={() => { setEnviado(true); setTableRefreshTrigger(prev => prev + 1); }} />
+            <SurveyForm
+              onSuccess={() => {
+                setEnviado(true);
+                setTableRefreshTrigger((prev) => prev + 1);
+              }}
+            />
           </div>
         ) : (
           <div className="bg-white/10 backdrop-blur-md p-6 rounded-2xl shadow-lg">
             <div className="flex justify-center items-center flex-col text-center space-y-4">
-              <h2 className="text-2xl font-bold">¡Gracias por llenar la encuesta!</h2>
+              <h2 className="text-2xl font-bold">
+                ¡Gracias por llenar la encuesta!
+              </h2>
 
               {isFinal ? (
                 <>
@@ -226,7 +302,9 @@ export default function SurveyClient() {
               ) : (
                 <>
                   <p>Tu canción sigue generándose…</p>
-                  <div className="text-xs opacity-80">Estado: <b>{getStatusText()}</b></div>
+                  <div className="text-xs opacity-80">
+                    Estado: <b>{getStatusText()}</b>
+                  </div>
                 </>
               )}
             </div>
