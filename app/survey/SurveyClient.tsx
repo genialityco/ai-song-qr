@@ -1,146 +1,160 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
-import { useState, useMemo, useEffect, useRef } from "react";
+import React, {
+  useState,
+  useMemo,
+  useEffect,
+  useRef,
+  forwardRef,
+  useImperativeHandle,
+} from "react";
 import { useSearchParams } from "next/navigation";
 
-function MiniPlayer({ src }: { src: string | null }) {
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [dur, setDur] = useState(0);
-  const [pos, setPos] = useState(0);
+type MiniPlayerHandle = {
+  getCurrentSrc: () => string;
+};
 
-  useEffect(() => {
-    const el = audioRef.current;
-    if (!el) return;
-    const wasPlaying = !el.paused;
-    const prevTime = el.currentTime;
+function mmss(t: number) {
+  if (!isFinite(t) || t < 0) t = 0;
+  const m = Math.floor(t / 60);
+  const s = Math.floor(t % 60);
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
 
-    try {
-      el.pause();
-      el.src = src || "";
-      if (src) el.load();
-      if (wasPlaying && src) {
-        try {
-          el.currentTime = prevTime;
-        } catch { }
-        el.play()
-          .then(() => setIsPlaying(true))
-          .catch(() => setIsPlaying(false));
-      } else {
-        setIsPlaying(false);
-      }
-    } catch { }
-  }, [src]);
+const MiniPlayer = forwardRef<MiniPlayerHandle, { src: string | null }>(
+  function MiniPlayer({ src }, ref) {
+    const audioRef = useRef<HTMLAudioElement | null>(null);
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [dur, setDur] = useState(0);
+    const [pos, setPos] = useState(0);
 
-  useEffect(() => {
-    const el = audioRef.current;
-    if (!el) return;
+    // Exponer el src REAL que el navegador está reproduciendo
+    useImperativeHandle(
+      ref,
+      () => ({
+        getCurrentSrc: () => audioRef.current?.currentSrc || audioRef.current?.src || src || "",
+      }),
+      [src]
+    );
 
-    const handlers = {
-      play: () => setIsPlaying(true),
-      pause: () => setIsPlaying(false),
-      ended: () => setIsPlaying(false),
-      timeupdate: () => setPos(el.currentTime),
-      loadedmetadata: () => setDur(el.duration || 0),
-    };
+    // Cambios de src
+    useEffect(() => {
+      const el = audioRef.current;
+      if (!el) return;
+      const wasPlaying = !el.paused;
+      const prevTime = el.currentTime;
 
-    Object.entries(handlers).forEach(([event, handler]) => {
-      el.addEventListener(event, handler);
-    });
-
-    return () => {
-      Object.entries(handlers).forEach(([event, handler]) => {
-        el.removeEventListener(event, handler);
-      });
-    };
-  }, []);
-
-  const toggle = async () => {
-    const el = audioRef.current;
-    if (!el || !src) return;
-    try {
-      if (el.paused) {
-        await el.play();
-      } else {
+      try {
         el.pause();
-      }
-    } catch { }
-  };
+        el.src = src || "";
+        if (src) el.load();
+        if (wasPlaying && src) {
+          try {
+            el.currentTime = prevTime;
+          } catch { }
+          el
+            .play()
+            .then(() => setIsPlaying(true))
+            .catch(() => setIsPlaying(false));
+        } else {
+          setIsPlaying(false);
+        }
+      } catch { }
+    }, [src]);
 
-  const onSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const el = audioRef.current;
-    if (!el) return;
-    try {
-      el.currentTime = Number(e.target.value);
-    } catch { }
-  };
+    // Eventos del elemento <audio>
+    useEffect(() => {
+      const el = audioRef.current;
+      if (!el) return;
 
-  const mmss = (t: number) => {
-    if (!isFinite(t) || t < 0) t = 0;
-    const m = Math.floor(t / 60);
-    const s = Math.floor(t % 60);
-    return `${m}:${s.toString().padStart(2, "0")}`;
-  };
+      const onPlay = () => setIsPlaying(true);
+      const onPause = () => setIsPlaying(false);
+      const onEnded = () => setIsPlaying(false);
+      const onTime = () => setPos(el.currentTime);
+      const onMeta = () => setDur(el.duration || 0);
 
-  return (
-    <div className="w-full bg-white/10 border border-white/20 rounded-xl p-3">
-      <div className="flex items-center gap-3">
-        <button
-          onClick={toggle}
-          disabled={!src}
-          className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 disabled:opacity-50 flex items-center justify-center"
-        >
-          {isPlaying ? (
-            <div className="w-3 h-3 flex gap-1">
-              <span className="inline-block w-[4px] h-3 bg-white" />
-              <span className="inline-block w-[4px] h-3 bg-white" />
+      el.addEventListener("play", onPlay);
+      el.addEventListener("pause", onPause);
+      el.addEventListener("ended", onEnded);
+      el.addEventListener("timeupdate", onTime);
+      el.addEventListener("loadedmetadata", onMeta);
+
+      return () => {
+        el.removeEventListener("play", onPlay);
+        el.removeEventListener("pause", onPause);
+        el.removeEventListener("ended", onEnded);
+        el.removeEventListener("timeupdate", onTime);
+        el.removeEventListener("loadedmetadata", onMeta);
+      };
+    }, []);
+
+    const toggle = async () => {
+      const el = audioRef.current;
+      if (!el || !src) return;
+      try {
+        if (el.paused) {
+          await el.play();
+        } else {
+          el.pause();
+        }
+      } catch { }
+    };
+
+    const onSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const el = audioRef.current;
+      if (!el) return;
+      try {
+        el.currentTime = Number(e.target.value);
+      } catch { }
+    };
+
+    return (
+      <div className="w-full bg-white/10 border border-white/20 rounded-xl p-3">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={toggle}
+            disabled={!src}
+            className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 disabled:opacity-50 flex items-center justify-center"
+          >
+            {isPlaying ? (
+              <div className="w-3 h-3 flex gap-1">
+                <span className="inline-block w-[4px] h-3 bg-white" />
+                <span className="inline-block w-[4px] h-3 bg-white" />
+              </div>
+            ) : (
+              <div className="w-0 h-0 border-t-[8px] border-b-[8px] border-l-[12px] border-transparent border-l-white ml-1" />
+            )}
+          </button>
+
+          <div className="flex-1">
+            <input
+              type="range"
+              min={0}
+              max={Number.isFinite(dur) && dur > 0 ? dur : 0}
+              step={0.1}
+              value={Math.min(pos, dur || 0)}
+              onChange={onSeek}
+              disabled={!src || !Number.isFinite(dur) || dur <= 0}
+              className="w-full accent-white"
+            />
+            <div className="text-[11px] opacity-80 flex justify-between">
+              <span>{mmss(pos)}</span>
+              <span>{Number.isFinite(dur) && dur > 0 ? mmss(dur) : "--:--"}</span>
             </div>
-          ) : (
-            <div className="w-0 h-0 border-t-[8px] border-b-[8px] border-l-[12px] border-transparent border-l-white ml-1" />
-          )}
-        </button>
-
-        <div className="flex-1">
-          <input
-            type="range"
-            min={0}
-            max={Number.isFinite(dur) && dur > 0 ? dur : 0}
-            step={0.1}
-            value={Math.min(pos, dur || 0)}
-            onChange={onSeek}
-            disabled={!src || !Number.isFinite(dur) || dur <= 0}
-            className="w-full accent-white"
-          />
-          <div className="text-[11px] opacity-80 flex justify-between">
-            <span>{mmss(pos)}</span>
-            <span>{Number.isFinite(dur) && dur > 0 ? mmss(dur) : "--:--"}</span>
           </div>
         </div>
+        <audio ref={audioRef} className="hidden" src={src ?? undefined} preload="auto" playsInline />
       </div>
-      <audio
-        ref={audioRef}
-        className="hidden"
-        src={src ?? undefined}
-        preload="auto"
-        playsInline
-      />
-    </div>
-  );
-}
+    );
+  }
+);
 
 export default function SurveyClient() {
   const searchParams = useSearchParams();
-  const [audioUrl, setAudioUrl] = useState<string>(
-    searchParams.get("src") || ""
-  );
-  const [isFinal, setIsFinal] = useState<boolean>(
-    (searchParams.get("final") || "0") === "1"
-  );
-  const [taskStatus, setTaskStatus] = useState<string>(
-    isFinal ? "SUCCESS" : "PENDING"
-  );
-
+  const [audioUrl, setAudioUrl] = useState<string>(searchParams.get("src") || "");
+  const [isFinal, setIsFinal] = useState<boolean>((searchParams.get("final") || "0") === "1");
+  const [taskStatus, setTaskStatus] = useState<string>(isFinal ? "SUCCESS" : "PENDING");
 
   const [enviado, setEnviado] = useState(false);
   const [showParticipants, setShowParticipants] = useState(false);
@@ -148,27 +162,23 @@ export default function SurveyClient() {
 
   const taskId = searchParams.get("taskId");
   const title = searchParams.get("filename");
-  const publicBase =
-    typeof window !== "undefined" ? window.location.origin : "";
 
-  const getDownloadUrl = useMemo(() => {
-    if (!audioUrl || !isFinal) return "";
-    const filename = (title || "cancion")
+  const publicBase = typeof window !== "undefined" ? window.location.origin : "";
+
+  const filename = useMemo(() => {
+    const base = (title || "cancion")
       .toLowerCase()
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/(^-|-$)+/g, "");
-    return `${publicBase}/api/download?src=${encodeURIComponent(
-      audioUrl
-    )}&filename=${encodeURIComponent(`${filename}.mp3`)}`;
-  }, [audioUrl, title, publicBase, isFinal]);
+    return `${base}.mp3`;
+  }, [title]);
 
   const phoneFromQr = searchParams.get("phone") || "";
   const [phone, setPhone] = useState<string>(() => {
     if (phoneFromQr) return phoneFromQr;
-    if (typeof window !== "undefined")
-      return localStorage.getItem("userPhone") || "";
+    if (typeof window !== "undefined") return localStorage.getItem("userPhone") || "";
     return "";
   });
   useEffect(() => {
@@ -180,10 +190,10 @@ export default function SurveyClient() {
 
   const hasSavedRef = useRef(false);
 
+  // Guardado de la media cuando sea final y haya phone
   useEffect(() => {
     if (!isFinal || !audioUrl || hasSavedRef.current) return;
     if (!phone) return;
-
     (async () => {
       try {
         await fetch("/api/save-media", {
@@ -202,16 +212,15 @@ export default function SurveyClient() {
     })();
   }, [isFinal, audioUrl, phone]);
 
-  // Polling para el taskId
+  // Polling para el taskId mientras no sea final
   useEffect(() => {
     if (isFinal || !taskId) return;
 
     const interval = setInterval(async () => {
       try {
-        const r = await fetch(
-          `/api/get-task?taskId=${encodeURIComponent(taskId)}`,
-          { cache: "no-store" }
-        );
+        const r = await fetch(`/api/get-task?taskId=${encodeURIComponent(taskId)}`, {
+          cache: "no-store",
+        });
         const data = await r.json();
 
         if (!r.ok) return;
@@ -220,10 +229,10 @@ export default function SurveyClient() {
         setTaskStatus(status);
 
         if (status === "SUCCESS" && data?.track?.audioUrl) {
-          setAudioUrl(data.track.audioUrl);
+          setAudioUrl(data.track.audioUrl); // URL final
           setIsFinal(true);
         } else if (data?.track?.streamAudioUrl && !audioUrl) {
-          setAudioUrl(data.track.streamAudioUrl);
+          setAudioUrl(data.track.streamAudioUrl); // URL de stream mientras tanto
         }
       } catch { }
     }, 6000);
@@ -235,17 +244,8 @@ export default function SurveyClient() {
     };
   }, [taskId, isFinal, audioUrl]);
 
-  const downloadAudio = () => {
-    if (!isFinal) return alert("Tu canción aún se está generando.");
-    if (!audioUrl) return alert("No hay audio disponible para descargar");
-
-    const link = document.createElement("a");
-    link.href = getDownloadUrl;
-    link.style.display = "none";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
+  // Ref para obtener el src REAL desde el MiniPlayer
+  const playerRef = useRef<MiniPlayerHandle>(null);
 
   const getStatusText = () => {
     if (isFinal) return "¡Lista para descargar!";
@@ -258,21 +258,42 @@ export default function SurveyClient() {
     return statusMap[taskStatus] || "Generando…";
   };
 
+  const downloadAudio = () => {
+    if (!isFinal) return alert("Tu canción aún se está generando.");
+    const realSrc = playerRef.current?.getCurrentSrc() || audioUrl;
+    if (!realSrc) return alert("No hay audio disponible para descargar");
+
+    // Debug: compara realSrc con audioUrl si quieres
+    console.log("[SurveyClient] download realSrc:", realSrc);
+    console.log("[SurveyClient] state audioUrl:", audioUrl);
+
+    const url = `${publicBase}/api/download?src=${encodeURIComponent(
+      realSrc
+    )}&filename=${encodeURIComponent(filename)}`;
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename; // hint extra
+    a.rel = "noopener";
+    a.style.display = "none";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  };
+
   return (
     <div className="w-full min-h-screen relative flex flex-col items-center justify-start text-white overflow-hidden py-6">
       <div className="absolute inset-0 bg-black/40 z-0" />
       <div className="relative z-10 w-full max-w-4xl px-4 space-y-6">
-        <div
-          className="bg-white/10 backdrop-blur-md p-6 rounded-2xl shadow-lg"
-          style={{ marginTop: "30%" }}
-        >
-          <MiniPlayer src={audioUrl || null} />
+        <div className="bg-white/10 backdrop-blur-md p-6 rounded-2xl shadow-lg" style={{ marginTop: "30%" }}>
+          <MiniPlayer ref={playerRef} src={audioUrl || null} />
           {!isFinal && (
             <div className="mt-2 text-xs text-white/80 text-center">
               Estado: <b>{getStatusText()}</b>
             </div>
           )}
         </div>
+
         {isFinal ? (
           <>
             <p>Tu canción está lista:</p>
