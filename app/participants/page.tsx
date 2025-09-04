@@ -20,7 +20,12 @@ export default function SurveyTablePage() {
 
       {/* Contenido */}
       <div className="relative z-10 w-full max-w-5xl px-4">
-        <SurveyTable />
+        <SurveyTable
+          rows={[]}
+          onRefresh={() => {}}
+          onNextPage={() => {}}
+          onPrevPage={() => {}}
+        />
       </div>
     </div>
   );
