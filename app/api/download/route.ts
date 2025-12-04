@@ -9,6 +9,7 @@ const ALLOWED_HOSTS = new Set<string>([
   "firebasestorage.googleapis.com",
   "storage.googleapis.com",
   "apiboxfiles.erweima.ai",
+  "musicfile.api.box",
   // agrega tus dominios/buckets si aplica
 ]);
 
