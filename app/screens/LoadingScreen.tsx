@@ -202,7 +202,7 @@ export default function LoadingScreen({
             fill="none"
             aria-label="Cargando"
             role="img"
-            style={{ width: "140px", height: "140px" }}
+            style={{ width: "clamp(80px, 15vmin, 140px)", height: "clamp(80px, 15vmin, 140px)" }}
           >
             <circle
               cx="50"
@@ -229,8 +229,8 @@ export default function LoadingScreen({
           </svg>
 
           {/* Píldora de estado */}
-          <div className="mt-3 w-full max-w-[22rem] md:max-w-md rounded-2xl bg-black/90 border border-white/20 px-5 py-3 text-center shadow-[0_10px_30px_rgba(0,0,0,0.4)]">
-            <span className="text-sm md:text-base font-semibold tracking-wide" style={{fontSize: "30px"}}>
+          <div className="mt-3 w-full max-w-[min(22rem,90vw)] rounded-2xl bg-black/90 border border-white/20 px-5 py-3 text-center shadow-[0_10px_30px_rgba(0,0,0,0.4)]">
+            <span className="font-semibold tracking-wide" style={{ fontSize: "clamp(16px, 4vmin, 30px)" }}>
               Generando música…
             </span>
           </div>

@@ -3,7 +3,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { QRCodeCanvas } from "qrcode.react";
+import { QRCodeSVG } from "qrcode.react";
 import Waveform from "../components/WaveForm";
 
 function slugify(s: string) {
@@ -18,6 +18,21 @@ function slugify(s: string) {
 const BASE_URL =
   process.env.NEXT_PUBLIC_BASE_URL ??
   (typeof window !== "undefined" ? window.location.origin : "");
+
+/**
+ * Dimensiones del phone mockup — fluid en cualquier pantalla.
+ * width = min(375px, 85vw, calc(80svh × 375/710))
+ * Esto garantiza que el marco nunca exceda el 80% de la altura visible.
+ */
+const PHONE_STYLE: React.CSSProperties = {
+  width: "min(375px, 85vw, calc(80svh * 0.528))",
+  aspectRatio: "375 / 710",
+  height: "auto",
+  borderRadius: "min(45px, 12vw)",
+  overflow: "hidden",
+  position: "relative",
+  flexShrink: 0,
+};
 
 export default function PlayerScreen({
   audioUrl,
@@ -40,7 +55,7 @@ export default function PlayerScreen({
   const audioCtxRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
-  const graphBuiltRef = useRef(false); // FIX: bandera para no recrear el grafo
+  const graphBuiltRef = useRef(false);
   const [, setAnalyserReady] = useState(false);
 
   const ready = !!audioUrl;
@@ -77,7 +92,7 @@ export default function PlayerScreen({
     };
   }, []);
 
-  // Cambios de URL (stream -> final): NO destruimos el grafo; solo cambiamos el src
+  // Cambios de URL (stream → final): cambia src sin destruir el grafo
   useEffect(() => {
     const el = audioRef.current;
     if (!el) return;
@@ -92,25 +107,16 @@ export default function PlayerScreen({
       el.src = audioUrl ?? "";
       if (audioUrl) el.load();
       if (wasPlaying && audioUrl) {
-        try {
-          el.currentTime = prevTime;
-        } catch { }
+        try { el.currentTime = prevTime; } catch { }
         el.play().catch(() => { });
         setIsPlaying(true);
       } else {
         setIsPlaying(false);
       }
     } catch { }
-
-    // FIX: No desconectar ni poner a null source/analyser; eso rompe el contrato del WebAudio para <audio>
-    // sourceRef.current?.disconnect();
-    // analyserRef.current?.disconnect();
-    // sourceRef.current = null;
-    // analyserRef.current = null;
-    // setAnalyserReady(false);
   }, [audioUrl]);
 
-  // Intro en !ready: muestra ambos textos por 5s
+  // Intro en !ready: muestra el estado por 5s
   useEffect(() => {
     if (ready) return;
     setShowIntro(true);
@@ -151,12 +157,9 @@ export default function PlayerScreen({
     const ctx = audioCtxRef.current;
 
     if (ctx.state === "suspended") {
-      try {
-        await ctx.resume();
-      } catch { }
+      try { await ctx.resume(); } catch { }
     }
 
-    // FIX: Crea los nodos una sola vez por <audio>
     if (!sourceRef.current) {
       sourceRef.current = ctx.createMediaElementSource(el);
     }
@@ -174,7 +177,7 @@ export default function PlayerScreen({
     }
   };
 
-  // Al entrar en ready: reproducir audio, mostrar Fase 1 y pasar a QR a los 5s
+  // Al entrar en ready: reproducir audio, mostrar reproductor, pasar a QR a los 5s
   useEffect(() => {
     if (!ready) {
       setShowQr(false);
@@ -195,10 +198,8 @@ export default function PlayerScreen({
       timer = window.setTimeout(() => setShowQr(true), 5000);
     })();
 
-    return () => {
-      if (timer) clearTimeout(timer);
-    };
-  }, [ready, audioUrl]); // está bien que dependa de audioUrl, pero no recrea nodos
+    return () => { if (timer) clearTimeout(timer); };
+  }, [ready, audioUrl]);
 
   const toggle = async () => {
     if (!audioRef.current) return;
@@ -216,11 +217,10 @@ export default function PlayerScreen({
     }
   };
 
-  // Limpieza SOLO al desmontar el componente
+  // Limpieza al desmontar
   useEffect(() => {
     return () => {
       try {
-        // Desconectar está bien aquí porque el elemento se desmonta; no volveremos a crear otro source para el mismo elemento
         sourceRef.current?.disconnect();
         analyserRef.current?.disconnect();
         audioCtxRef.current?.close();
@@ -228,347 +228,220 @@ export default function PlayerScreen({
       sourceRef.current = null;
       analyserRef.current = null;
       audioCtxRef.current = null;
-      graphBuiltRef.current = false; // FIX
+      graphBuiltRef.current = false;
     };
   }, []);
 
+  /* ---------- Play / Pause icon ---------- */
+  const PlayPauseIcon = ({ size = 92 }: { size?: number }) => (
+    <button
+      onClick={toggle}
+      className="absolute z-10 rounded-full shadow-lg transition active:scale-95 disabled:opacity-50"
+      style={{
+        top: "85%",
+        left: "50%",
+        transform: "translate(-50%, -50%)",
+        width: size,
+        height: size,
+        background: "#6b95ff",
+      }}
+      disabled={!ready}
+      aria-label={isPlaying ? "Pausar" : "Reproducir"}
+    >
+      {isPlaying ? (
+        <div className="mx-auto w-4 h-4 flex gap-1">
+          <span className="inline-block w-[6px] h-4 bg-white" />
+          <span className="inline-block w-[6px] h-4 bg-white" />
+        </div>
+      ) : (
+        <div style={{ margin: "0 auto", width: 0, height: 0, borderTop: "10px solid transparent", borderBottom: "10px solid transparent", borderLeft: "16px solid white" }} />
+      )}
+    </button>
+  );
+
+  /* ---------- Waveform overlay ---------- */
+  const WaveformOverlay = () => (
+    <div
+      className="absolute z-20 pointer-events-none"
+      style={{ left: "5%", top: "65%", width: "88%", height: "50px", overflow: "hidden" }}
+    >
+      <Waveform analyser={analyserRef.current} active={ready} />
+    </div>
+  );
+
+  /* ---------- Video de fondo del marco ---------- */
+  const FrameVideo = () => (
+    <video
+      src="/assets/MARCO_REPRODUCTOR_ANIMADO.mp4"
+      autoPlay
+      loop
+      muted
+      playsInline
+      preload="auto"
+      disableRemotePlayback
+      style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", zIndex: 0 }}
+    />
+  );
+
   return (
-    <div className="w-full min-h-screen relative flex flex-col items-center justify-start text-white overflow-hidden">
+    <div className="w-full min-h-[100svh] relative flex flex-col items-center justify-center text-white overflow-hidden">
+
       {/* ======== PRE-READY (!ready) ======== */}
       {!ready && (
-        <>
-          <div
-            className="hidden md:block min-h-screen relative"
-            style={{ transform: "translate(0px, 5px)" }}
-          >
-            <div className="w-full h-screen grid place-items-center">
-              <div className="relative flex flex-col items-center justify-center gap-6 px-4">
-                <img
-                  src="/assets/TEXTO_REPRODUCTOR.svg"
-                  alt="Texto"
-                  className="h-auto z-10 transition-opacity duration-700"
-                  style={{
-                    width: "min(250px,60vw)",
-                    position: "absolute",
-                    top: "8%",
-                  }}
-                  draggable={false}
-                  loading="eager"
-                  decoding="async"
-                  fetchPriority="high"
-                />
-                <div
-                  className="relative"
-                  style={{
-                    width: "375px",
-                    height: "710px",
-                    borderRadius: "45px",
-                    overflow: "hidden",
-                    marginBlock: "20px",
-                  }}
-                >
-                  <video
-                    src="/assets/MARCO_REPRODUCTOR_ANIMADO.mp4"
-                    autoPlay
-                    loop
-                    muted
-                    playsInline
-                    preload="auto"
-                    disableRemotePlayback
-                    style={{
-                      position: "absolute",
-                      inset: 0,
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "cover",
-                      zIndex: 0,
-                    }}
-                  />
+        <div className="flex flex-col items-center justify-center gap-4 px-4 py-6">
+          <img
+            src="/assets/TEXTO_REPRODUCTOR.svg"
+            alt="Texto"
+            className="h-auto z-10"
+            style={{ width: "clamp(160px, 40vw, 250px)", marginBottom: "8px" }}
+            draggable={false}
+            loading="eager"
+            decoding="async"
+            fetchPriority="high"
+          />
 
-                  <div
-                    className="absolute z-20 pointer-events-none"
-                    style={{
-                      left: "5%",
-                      right: "12%",
-                      top: "65%",
-                      width: "330px",
-                      height: "50px",
-                      overflow: "hidden",
-                    }}
-                  >
-                    <Waveform analyser={analyserRef.current} active={ready} />
-                  </div>
-
-                  <button
-                    onClick={toggle}
-                    className="absolute z-10 rounded-full shadow-lg transition active:scale-95 disabled:opacity-50"
-                    style={{
-                      top: "85%",
-                      left: "50%",
-                      transform: "translate(-50%, -50%)",
-                      width: "92px",
-                      height: "92px",
-                      background: "#6b95ff",
-                    }}
-                    disabled={!ready}
-                    aria-label={isPlaying ? "Pausar" : "Reproducir"}
-                  >
-                    {isPlaying ? (
-                      <div className="mx-auto w-4 h-4 flex gap-1">
-                        <span className="inline-block w-[6px] h-4 bg-white" />
-                        <span className="inline-block w-[6px] h-4 bg-white" />
-                      </div>
-                    ) : (
-                      <div
-                        style={{
-                          margin: "0 auto",
-                          width: 0,
-                          height: 0,
-                          borderTop: "10px solid transparent",
-                          borderBottom: "10px solid transparent",
-                          borderLeft: "16px solid white",
-                        }}
-                      />
-                    )}
-                  </button>
-                </div>
-
-                <img
-                  src="/assets/PANTALLA/TEXT/TEXTOS-02.svg"
-                  alt="Caja de texto"
-                  className="block transition-opacity duration-700"
-                  style={{ width: "min(480px,80vw)", height: "auto" }}
-                  draggable={false}
-                  loading="eager"
-                  decoding="async"
-                />
-              </div>
-            </div>
+          <div style={PHONE_STYLE}>
+            <FrameVideo />
+            <WaveformOverlay />
+            <PlayPauseIcon />
           </div>
-        </>
+
+          <img
+            src="/assets/PANTALLA/TEXT/TEXTOS-02.svg"
+            alt="Caja de texto"
+            className="block"
+            style={{ width: "clamp(260px, 80vw, 480px)", height: "auto" }}
+            draggable={false}
+            loading="eager"
+            decoding="async"
+          />
+        </div>
       )}
 
-      {/* ======== READY — FASE 1 (texto final + reproductor, sin QR) ======== */}
+      {/* ======== READY — FASE 1 (reproductor, sin QR) ======== */}
       {ready && !showQr && (
-        <>
-          <div
-            className="hidden md:block min-h-screen relative"
-            style={{ transform: "translate(0px, 5px)" }}
-          >
-            <div className="w-full h-screen grid place-items-center">
-              <div className="flex flex-col items-center justify-center gap-6 px-4">
-                <div
-                  className="relative"
-                  style={{
-                    width: "375px",
-                    height: "710px",
-                    borderRadius: "45px",
-                    overflow: "hidden",
-                    marginBlock: "20px",
-                  }}
-                >
-                  <video
-                    src="/assets/MARCO_REPRODUCTOR_ANIMADO.mp4"
-                    autoPlay
-                    loop
-                    muted
-                    playsInline
-                    preload="auto"
-                    disableRemotePlayback
-                    style={{
-                      position: "absolute",
-                      inset: 0,
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "cover",
-                      zIndex: 0,
-                    }}
-                  />
-
-                  <div
-                    className="absolute z-20 pointer-events-none"
-                    style={{
-                      left: "5%",
-                      right: "12%",
-                      top: "65%",
-                      width: "330px",
-                      height: "50px",
-                      overflow: "hidden",
-                    }}
-                  >
-                    <Waveform analyser={analyserRef.current} active={ready} />
-                  </div>
-
-                  <button
-                    onClick={toggle}
-                    className="absolute z-10 rounded-full shadow-lg transition active:scale-95 disabled:opacity-50"
-                    style={{
-                      top: "85%",
-                      left: "50%",
-                      transform: "translate(-50%, -50%)",
-                      width: "92px",
-                      height: "92px",
-                      background: "#6b95ff",
-                    }}
-                    disabled={!ready}
-                    aria-label={isPlaying ? "Pausar" : "Reproducir"}
-                  >
-                    {isPlaying ? (
-                      <div className="mx-auto w-4 h-4 flex gap-1">
-                        <span className="inline-block w-[6px] h-4 bg-white" />
-                        <span className="inline-block w-[6px] h-4 bg-white" />
-                      </div>
-                    ) : (
-                      <div
-                        style={{
-                          margin: "0 auto",
-                          width: 0,
-                          height: 0,
-                          borderTop: "10px solid transparent",
-                          borderBottom: "10px solid transparent",
-                          borderLeft: "16px solid white",
-                        }}
-                      />
-                    )}
-                  </button>
-                </div>
-
-                <img
-                  src="/assets/PANTALLA/IMG/CAJA_TEXTO_01.png"
-                  alt="Texto"
-                  className="block"
-                  style={{ width: "min(46vw,620px)", height: "auto" }}
-                  draggable={false}
-                  loading="eager"
-                  decoding="async"
-                  fetchPriority="high"
-                />
-              </div>
-            </div>
+        <div className="flex flex-col items-center justify-center gap-4 px-4 py-6">
+          <div style={PHONE_STYLE}>
+            <FrameVideo />
+            <WaveformOverlay />
+            <PlayPauseIcon />
           </div>
-        </>
+
+          <img
+            src="/assets/PANTALLA/IMG/CAJA_TEXTO_01.png"
+            alt="Texto"
+            className="block"
+            style={{ width: "clamp(260px, 80vw, 620px)", height: "auto" }}
+            draggable={false}
+            loading="eager"
+            decoding="async"
+            fetchPriority="high"
+          />
+        </div>
       )}
 
       {/* ======== READY — FASE 2 (pantalla QR) ======== */}
       {ready && showQr && (
-        <>
+        <div className="flex items-center justify-center px-4 py-6">
           <div
-            className="hidden md:flex min-h-screen items-center justify-center relative"
-            style={{ transform: "translate(0px, 5px)" }}
+            style={{
+              ...PHONE_STYLE,
+              backgroundImage: 'url("/assets/FONDO_REPRODUCTOR_QR.png")',
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+            }}
           >
-            <div className="relative mx-auto w-full h-screen flex flex-col justify-center items-center gap-8">
-              <div
-                className="relative"
+            {/* QR centrado en la parte superior del frame */}
+            <div
+              className="absolute z-30 rounded-md bg-white"
+              style={{
+                left: "50%",
+                top: "28%",
+                transform: "translate(-50%, -50%)",
+                width: "64%",
+                padding: "clamp(2px, 1%, 6px)",
+              }}
+            >
+              <QRCodeSVG
+                value={urlSurvey || BASE_URL}
+                size={250}
+                bgColor="#ffffff"
+                fgColor="#000000"
+                level="L"
+                style={{ width: "100%", height: "auto", display: "block" }}
+              />
+            </div>
+
+            {/* Waveform */}
+            <div
+              className="absolute z-20 pointer-events-none"
+              style={{ left: "4%", top: "72%", width: "88%", height: "50px", overflow: "hidden" }}
+            >
+              <Waveform analyser={analyserRef.current} active={ready} />
+            </div>
+
+            {/* Controles de reproducción */}
+            <div
+              className="absolute z-30 left-1/2 -translate-x-1/2 flex items-center gap-4"
+              style={{ top: "84%" }}
+            >
+              <button
+                type="button"
+                aria-label="Siguiente canción"
+                className="flex items-center justify-center bg-transparent p-0 cursor-pointer"
+                style={{ width: "clamp(32px, 8vw, 48px)", height: "clamp(32px, 8vw, 48px)" }}
+              >
+                <img
+                  src="/assets/TABLET/SVG/ICONOS_REPRODUCTOR-03.svg"
+                  alt="Siguiente canción"
+                  className="w-full h-full"
+                  draggable={false}
+                />
+              </button>
+
+              <button
+                type="button"
+                onClick={toggle}
+                aria-label={isPlaying ? "Pausar" : "Reproducir"}
+                aria-pressed={isPlaying}
+                className="flex items-center justify-center bg-transparent p-0 cursor-pointer"
                 style={{
-                  width: "400px",
-                  height: "710px",
-                  borderRadius: "45px",
-                  overflow: "hidden",
-                  marginBlock: "50px",
-                  backgroundImage: 'url("/assets/FONDO_REPRODUCTOR_QR.png")',
-                  backgroundSize: "cover",
-                  backgroundPosition: "center",
+                  width: "clamp(48px, 12vw, 64px)",
+                  height: "clamp(48px, 12vw, 64px)",
+                  borderRadius: "50%",
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+                  background: "#6b95ff",
                 }}
               >
-                <div
-                  className="absolute z-30 rounded-md bg-white p-1"
-                  style={{
-                    left: "50%",
-                    top: "28%",
-                    transform: "translate(-50%, -50%)",
-                  }}
-                >
-                  <QRCodeCanvas
-                    value={urlSurvey || BASE_URL}
-                    size={250}
-                    bgColor="#ffffff"
-                    fgColor="#000000"
-                    level="L"
-                  />
-                </div>
+                {isPlaying ? (
+                  <div className="mx-auto w-4 h-4 flex gap-1">
+                    <span className="inline-block w-[6px] h-4 bg-white" />
+                    <span className="inline-block w-[6px] h-4 bg-white" />
+                  </div>
+                ) : (
+                  <div style={{ margin: "0 auto", width: 0, height: 0, borderTop: "10px solid transparent", borderBottom: "10px solid transparent", borderLeft: "16px solid white" }} />
+                )}
+              </button>
 
-                <div
-                  className="absolute z-20 pointer-events-none"
-                  style={{
-                    left: "4%",
-                    right: "12%",
-                    top: "72%",
-                    width: "350px",
-                    height: "50px",
-                    overflow: "hidden",
-                  }}
-                >
-                  <Waveform analyser={analyserRef.current} active={ready} />
-                </div>
-
-                <div
-                  className="absolute z-30 left-1/2 -translate-x-1/2 flex items-center gap-4"
-                  style={{ top: "84%" }}
-                >
-                  <button
-                    type="button"
-                    aria-label="Siguiente canción"
-                    className="w-12 h-12 flex items-center justify-center bg-transparent p-0 cursor-pointer"
-                  >
-                    <img
-                      src="/assets/TABLET/SVG/ICONOS_REPRODUCTOR-03.svg"
-                      alt="Siguiente canción"
-                      className="w-full h-full"
-                      draggable={false}
-                    />
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={toggle}
-                    aria-label={isPlaying ? "Pausar" : "Reproducir"}
-                    aria-pressed={isPlaying}
-                    className="w-16 h-16 flex items-center justify-center bg-transparent p-0 cursor-pointer"
-                    style={{
-                      borderRadius: "50%",
-                      boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
-                      background: "#6b95ff",
-                    }}
-                  >
-                    {isPlaying ? (
-                      <div className="mx-auto w-4 h-4 flex gap-1">
-                        <span className="inline-block w-[6px] h-4 bg-white" />
-                        <span className="inline-block w-[6px] h-4 bg-white" />
-                      </div>
-                    ) : (
-                      <div
-                        style={{
-                          margin: "0 auto",
-                          width: 0,
-                          height: 0,
-                          borderTop: "10px solid transparent",
-                          borderBottom: "10px solid transparent",
-                          borderLeft: "16px solid white",
-                        }}
-                      />
-                    )}
-                  </button>
-
-                  <button
-                    type="button"
-                    aria-label="Reiniciar canción"
-                    className="w-12 h-12 flex items-center justify-center bg-transparent p-0 cursor-pointer"
-                  >
-                    <img
-                      src="/assets/TABLET/SVG/ICONOS_REPRODUCTOR-02.svg"
-                      alt="Reiniciar canción"
-                      className="w-full h-full"
-                      draggable={false}
-                    />
-                  </button>
-                </div>
-              </div>
+              <button
+                type="button"
+                aria-label="Reiniciar canción"
+                className="flex items-center justify-center bg-transparent p-0 cursor-pointer"
+                style={{ width: "clamp(32px, 8vw, 48px)", height: "clamp(32px, 8vw, 48px)" }}
+              >
+                <img
+                  src="/assets/TABLET/SVG/ICONOS_REPRODUCTOR-02.svg"
+                  alt="Reiniciar canción"
+                  className="w-full h-full"
+                  draggable={false}
+                />
+              </button>
             </div>
           </div>
-        </>
+        </div>
       )}
 
-      {/* ✅ Audio oculto para funcionalidad */}
+      {/* Audio oculto */}
       <audio
         ref={audioRef}
         src={audioUrl ?? undefined}
@@ -585,20 +458,8 @@ export default function PlayerScreen({
         aria-label="Volver al inicio"
         className="fixed bottom-5 right-5 z-50 bg-white/15 hover:bg-white/25 border border-white/20 backdrop-blur-sm rounded-full p-3 md:p-4 shadow-lg transition"
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          width="22"
-          height="22"
-          fill="currentColor"
-          className="text-white"
-        >
-          <path
-            d="M12 3.172 3 10v10a1 1 0 0 0 1 1h6v-6h4v6h6a1 1 0 0 0 1-1V10l-9-6.828zM21 10l-9-7-9 7"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.6"
-          />
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="22" height="22" fill="currentColor" className="text-white">
+          <path d="M12 3.172 3 10v10a1 1 0 0 0 1 1h6v-6h4v6h6a1 1 0 0 0 1-1V10l-9-6.828zM21 10l-9-7-9 7" fill="none" stroke="currentColor" strokeWidth="1.6" />
           <path d="M10 21v-6h4v6" />
         </svg>
       </button>

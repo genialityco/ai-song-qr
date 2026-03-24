@@ -36,43 +36,50 @@ export default function GenreSelectionScreen({
   const selectedBg = selectedIndex >= 0 ? bgForIndex(selectedIndex) : null;
 
   return (
-    <div className="w-full min-h-screen relative flex flex-col text-white overflow-hidden">
-      {/* =============== VISTA DESKTOP =============== */}
-      <div className="hidden md:block">
-        {/* HEADER (solo desktop) */}
-        <div className="relative z-20 pt-4" style={{ marginTop: "20%" }}>
-          <div
-            className="mt-2 text-center px-4"
-            style={{ justifyContent: "center", display: "flex" }}
-          >
-            <img
-              src="/assets/PANTALLA/TEXT/TEXTOS-03.svg"
-              alt="¡Carga exitosa!"
-              style={{ width: "70%", marginBottom: "20px" }}
-            />
-          </div>
-        </div>
+    <div className="w-full min-h-[100svh] flex flex-col text-white overflow-hidden">
 
-        {/* GRID (solo desktop) */}
-        <div className="relative z-10 w-full mx-auto max-w-4xl px-6">
-          <div className="mt-3 grid grid-cols-2 gap-x-5 gap-y-4 justify-items-center">
+      {/* HEADER */}
+      <div className="flex-none flex justify-center pt-[clamp(12px,5svh,120px)] pb-2 px-4">
+        <img
+          src="/assets/PANTALLA/TEXT/TEXTOS-03.svg"
+          alt="Elige tu género musical"
+          className="h-auto"
+          style={{ width: "clamp(160px, 65vw, 550px)" }}
+        />
+      </div>
+
+      {/* GRID DE GÉNEROS */}
+      <div className="flex-1 flex items-center py-2">
+        <div
+          className="w-full mx-auto"
+          style={{
+            maxWidth: "min(900px, 95vw)",
+            paddingInline: "clamp(8px, 3vw, 24px)",
+          }}
+        >
+          <div
+            className="grid grid-cols-2"
+            style={{
+              gap: "clamp(6px, 1.5vh, 16px) clamp(8px, 2vw, 20px)",
+            }}
+          >
             {CARDS.map((card, i) => {
               const selected = style === card.label;
               const bg = bgForIndex(i);
-
               const isRightCol = i % 2 === 1;
-              const cornerStyle = isRightCol
+
+              const cornerStyle: React.CSSProperties = isRightCol
                 ? {
-                    width: "400px",
-                    height: "130px",
-                    borderTopRightRadius: 40,
-                    borderBottomRightRadius: 40,
+                    width: "100%",
+                    height: "clamp(72px, 10vh, 130px)",
+                    borderTopRightRadius: "clamp(20px, 3vw, 40px)",
+                    borderBottomRightRadius: "clamp(20px, 3vw, 40px)",
                   }
                 : {
-                    width: "400px",
-                    height: "130px",
-                    borderTopLeftRadius: 40,
-                    borderBottomLeftRadius: 40,
+                    width: "100%",
+                    height: "clamp(72px, 10vh, 130px)",
+                    borderTopLeftRadius: "clamp(20px, 3vw, 40px)",
+                    borderBottomLeftRadius: "clamp(20px, 3vw, 40px)",
                   };
 
               return (
@@ -83,8 +90,8 @@ export default function GenreSelectionScreen({
                     "relative overflow-hidden",
                     "shadow-[0_8px_20px_rgba(0,0,0,0.35)] transition transform text-center",
                     selected
-                      ? "ring-2 ring-white/70 md:scale-[1.01]"
-                      : "hover:md:scale-[1.01]",
+                      ? "ring-2 ring-white/70 scale-[1.01]"
+                      : "hover:scale-[1.01]",
                   ].join(" ")}
                   style={cornerStyle}
                 >
@@ -101,7 +108,7 @@ export default function GenreSelectionScreen({
                   {/* Overlay oscuro */}
                   <div className="absolute inset-0 bg-black/20" />
 
-                  {/* Texto normal, no se invierte */}
+                  {/* Texto — no se invierte */}
                   <div
                     className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-1 text-white text-center"
                     style={{
@@ -109,17 +116,20 @@ export default function GenreSelectionScreen({
                       marginRight: isRightCol ? "20px" : "-20px",
                     }}
                   >
-                    <div className="font-semibold text-[30px] drop-shadow">
+                    <div
+                      className="font-semibold drop-shadow"
+                      style={{ fontSize: "clamp(13px, 2.2vw, 30px)" }}
+                    >
                       {card.label}
                     </div>
                     <span
                       className={[
-                        "inline-block leading-none",
-                        "text-[24px] px-2 py-1 mt-1 rounded-md border",
+                        "inline-block leading-none px-2 py-1 mt-1 rounded-md border",
                         selected
                           ? "bg-white text-black border-white"
                           : "bg-transparent text-white border-white/70 hover:bg-white/10",
                       ].join(" ")}
+                      style={{ fontSize: "clamp(10px, 1.6vw, 22px)" }}
                     >
                       Seleccionar
                     </span>
@@ -133,58 +143,50 @@ export default function GenreSelectionScreen({
             <div className="mt-2 text-center text-red-300 text-sm">{error}</div>
           )}
         </div>
+      </div>
 
-        {/* FOOTER + SLIDER (solo desktop) */}
+      {/* FOOTER + SLIDER */}
+      <div
+        className="flex-none"
+        style={{
+          paddingInline: "clamp(4px, 2%, 16px)",
+          paddingBottom: "clamp(4px, 2vh, 16px)",
+        }}
+      >
         <div
-          style={{
-            position: "relative",
-            zIndex: 20,
-            marginTop: "15px",
-          }}
+          className="relative mx-auto"
+          style={{ maxWidth: "min(900px, 95vw)" }}
         >
-          {/* Contenedor centrado y con ancho controlado */}
+          {/* Imagen de fondo del footer */}
+          <img
+            src="/assets/PANTALLA/TEXT/CAJA-DE-TEXTO_FOOTER_PANTALLA.png"
+            alt="Beneficios Lenovo VoIP"
+            className="block w-full object-cover rounded-xl pointer-events-none select-none"
+            style={{
+              height: "auto",
+              maxHeight: "clamp(130px, 32vh, 480px)",
+              objectPosition: "top",
+            }}
+          />
+
+          {/* Slider superpuesto en la parte superior de la imagen */}
           <div
             style={{
-              position: "relative",
-              margin: "0 auto",
-              width: "100%",
-              paddingInline: "2%",
+              position: "absolute",
+              top: "10%",
+              width: "90%",
+              left: "5%",
+              display: "flex",
+              justifyContent: "center",
             }}
           >
-            {/* Imagen contenedor de textos */}
-            <img
-              src="/assets/PANTALLA/TEXT/CAJA-DE-TEXTO_FOOTER_PANTALLA.png"
-              alt="Beneficios Lenovo VoIP"
-              style={{
-                display: "block",
-                width: "100%",
-                height: "480px",
-                objectFit: "cover",
-                borderRadius: "12px",
-                userSelect: "none",
-                pointerEvents: "none",
-              }}
-            />
-
-            {/* Barra deslizante superpuesta en la parte superior de la imagen */}
-            <div
-              style={{
-                position: "absolute",
-                top: "10%",
-                width: "90%",
-                display: "flex",
-                justifyContent: "center",
-                left: "5%",
-              }}
-            >
-              <div style={{ width: "100%" }}>
-                <SlideToStart
-                  onComplete={onNext}
-                  disabled={!canNext}
-                  selectedLabel={canNext ? style : undefined}
-                  selectedBg={selectedBg}
-                />
-              </div>
+            <div style={{ width: "100%" }}>
+              <SlideToStart
+                onComplete={onNext}
+                disabled={!canNext}
+                selectedLabel={canNext ? style : undefined}
+                selectedBg={selectedBg}
+              />
             </div>
           </div>
         </div>
